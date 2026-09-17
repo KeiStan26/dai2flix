@@ -1,9 +1,9 @@
 # ==============================================================================
-# logrotate configuration for DAINI FLIX batch logs
-# Place at: /etc/logrotate.d/daini-vod
+# logrotate configuration for DAI2FLIX batch logs
+# Place at: /etc/logrotate.d/dai2flix
 # ==============================================================================
 
-/var/log/daini-vod/*.log {
+/var/log/dai2flix/*.log {
     daily
     missingok
     rotate 14

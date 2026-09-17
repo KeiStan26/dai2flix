@@ -324,7 +324,7 @@ class SyncService:
 
 def main():
     """CLI Entrypoint for cron execution."""
-    parser = argparse.ArgumentParser(description="Daini-group VOD sync batch script.")
+    parser = argparse.ArgumentParser(description="DAI2FLIX sync batch script.")
     parser.add_argument("--force-unlock", action="store_true", help="Force remove stale lock file")
     args = parser.parse_args()
 
@@ -343,7 +343,7 @@ def main():
         sys.exit(0)
 
     try:
-        logger.info("Starting Daini-group VOD sync batch...")
+        logger.info("Starting DAI2FLIX sync batch...")
         init_db()
 
         youtube_client = None

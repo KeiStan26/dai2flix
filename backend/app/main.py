@@ -24,24 +24,24 @@ logging.basicConfig(
     format="[%(asctime)s] [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger("daini_vod_api")
+logger = logging.getLogger("dai2flix_api")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan context for startup and shutdown procedures."""
-    logger.info("Starting Daini-group VOD API (v%s)...", __version__)
+    logger.info("Starting DAI2FLIX API (v%s)...", __version__)
     try:
         init_db()
         logger.info("Database schema initialized and verified.")
     except Exception as e:
         logger.critical("Failed to initialize database during startup: %s", e, exc_info=True)
     yield
-    logger.info("Shutting down Daini-group VOD API.")
+    logger.info("Shutting down DAI2FLIX API.")
 
 
 app = FastAPI(
-    title="Daini Group Netflix-style VOD API",
+    title="DAI2FLIX API",
     description="Backend API for high-impact Netflix-style VOD application dedicated to Daini-group video assets.",
     version=__version__,
     lifespan=lifespan,
@@ -103,7 +103,7 @@ app.include_router(feed.router)
 def root():
     """Welcome endpoint providing service metadata."""
     return {
-        "service": "Daini Group Netflix-style VOD API",
+        "service": "DAI2FLIX API",
         "version": __version__,
         "health": "/api/health",
         "feed": "/api/v1/feed",

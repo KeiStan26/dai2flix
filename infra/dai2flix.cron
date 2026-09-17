@@ -1,0 +1,8 @@
+# ==============================================================================
+# Cron job configuration for DAI2FLIX daily sync batch
+# Place at: /etc/cron.d/dai2flix-sync
+# Permissions: chmod 644 /etc/cron.d/dai2flix-sync
+# ==============================================================================
+
+# Daily at 03:00 AM JST
+0 3 * * * www-data cd /var/www/dai2flix/backend && /var/www/dai2flix/.venv/bin/python scripts/sync_batch.py >> /var/log/dai2flix/sync.log 2>&1

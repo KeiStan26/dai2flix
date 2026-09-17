@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     sync_playlist_ids: str = ""  # Comma-separated playlist IDs
 
     # Storage & Locks
-    database_url: str = "sqlite:///./daini_vod.db"
+    database_url: str = "sqlite:///./dai2flix.db"
     lock_file_path: str = "./sync.lock"
 
     # Server & Logging

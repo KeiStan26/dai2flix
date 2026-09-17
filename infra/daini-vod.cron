@@ -1,8 +1,0 @@
-# ==============================================================================
-# Cron job configuration for DAINI FLIX daily sync batch
-# Place at: /etc/cron.d/daini-vod-sync
-# Permissions: chmod 644 /etc/cron.d/daini-vod-sync
-# ==============================================================================
-
-# Daily at 03:00 AM JST
-0 3 * * * www-data cd /var/www/daini-vod/backend && /var/www/daini-vod/.venv/bin/python scripts/sync_batch.py >> /var/log/daini-vod/sync.log 2>&1

@@ -1,4 +1,4 @@
-# DAINI FLIX 完全手動オペレーション手順書 (DEPLOYMENT_GUIDE.md)
+# DAI2FLIX 完全手動オペレーション手順書 (DEPLOYMENT_GUIDE.md)
 
 本書は、Antigravityによって生成されたコードベースから、GitHub Public公開、自宅Ubuntu Server（Apache2環境）への配置、デーモン化、日次同期バッチ稼働、ヘルスチェックまでの**全工程を網羅したステップ・バイ・ステップのマニュアル**です。
 
@@ -24,13 +24,13 @@
 git status
 
 # .gitignore が適切に機能しているかの確認
-git check-ignore -v backend/.env backend/daini_vod.db
+git check-ignore -v backend/.env backend/dai2flix.db
 ```
 
 ### 1-2. GitHubリポジトリの作成
 1. ブラウザで [GitHub](https://github.com/new) にアクセスします。
 2. 設定項目:
-   - **Repository name**: `daini-vod`
+   - **Repository name**: `dai2flix`
    - **Description**: `YouTubeクリエイター「だいにぐるーぷ」特化型Netflix風動画配信Webアプリ。YouTube Data API v3の最小クオータ運用とGemini APIによるキャッチコピー・あらすじ自動抽出、FastAPI＋SQLite(WAL)、React+Tailwindを採用し、Ubuntu+Apache2環境での完全放置運用を実現。`
    - **Public / Private**: `Public` を選択
    - **Initialize this repository with**: すべてチェックを外す（ローカルの既存コードをPushするため）
@@ -40,7 +40,7 @@ git check-ignore -v backend/.env backend/daini_vod.db
 
 ```bash
 # リモートリポジトリのURLを設定（ユーザー名は自身のアカウントに変更）
-git remote add origin https://github.com/your-username/daini-vod.git
+git remote add origin https://github.com/your-username/dai2flix.git
 
 # メインブランチのPush
 git branch -M main
@@ -56,7 +56,7 @@ git push -u origin main
 | 区分 | 採用技術 | 選定理由と設計判断 |
 | :--- | :--- | :--- |
 | **全体区分** | **Webアプリ (FastAPI + React SPA) ＋ 定期実行バッチ** | 自宅Ubuntu Server（Apache2環境）の既存リソースを最大限活用し、外部有料SaaSコストをゼロにするため。 |
-| **Webサーバー / リバースプロキシ** | **Apache 2.4 (VirtualHost / ProxyPass)** | 既存稼働サイトを保護するため独立したバーチャルホスト設定ファイル（`/etc/apache2/sites-available/daini-vod.conf`）を作成。SPA用ルーティング（`FallbackResource`）と機密ファイル遮断をWebサーバー層で強制。 |
+| **Webサーバー / リバースプロキシ** | **Apache 2.4 (VirtualHost / ProxyPass)** | 既存稼働サイトを保護するため独立したバーチャルホスト設定ファイル（`/etc/apache2/sites-available/dai2flix.conf`）を作成。SPA用ルーティング（`FallbackResource`）と機密ファイル遮断をWebサーバー層で強制。 |
 | **バックエンド** | **FastAPI + Uvicorn (systemd 常駐)** | 非同期高速処理、Pydanticによる厳格な入出力バリデーション、N+1問題を抑止するSQLAlchemy 2.0を採用。systemdで自動復旧・サンドボックス化。 |
 | **データベース** | **SQLite (WALモード有効化)** | PostgreSQL等の重厚な外部DBサーバー構築を避け、メンテナンスフリーを実現。WAL（Write-Ahead Logging）により、バッチ書き込み中もWeb読み込みがブロックされない高並行性を担保。 |
 | **データ同期バッチ** | **Python (cron 毎日深夜3時実行)** | YouTube APIクオータ消費を最小化（`search.list`完全排除、`playlists.list` / `playlistItems.list` / `videos.list` のみ使用）。Gemini APIは新着動画検知時のみ1回実行し、コストとクオータを保護。多重起動はPID検証付きファイルロック（`BatchLock`）で防止。 |
@@ -95,18 +95,18 @@ sudo systemctl restart apache2
 
 ```bash
 # アプリケーション配置ディレクトリの作成
-sudo mkdir -p /var/www/daini-vod
-sudo chown -R $USER:$USER /var/www/daini-vod
+sudo mkdir -p /var/www/dai2flix
+sudo chown -R $USER:$USER /var/www/dai2flix
 
 # リポジトリのクローン
-git clone https://github.com/your-username/daini-vod.git /var/www/daini-vod
-cd /var/www/daini-vod
+git clone https://github.com/your-username/dai2flix.git /var/www/dai2flix
+cd /var/www/dai2flix
 ```
 
 ### 3-3. Python仮想環境と依存関係のセットアップ
 
 ```bash
-cd /var/www/daini-vod
+cd /var/www/dai2flix
 python3 -m venv .venv
 ./.venv/bin/pip install --upgrade pip
 ./.venv/bin/pip install -r backend/requirements.txt
@@ -115,12 +115,12 @@ python3 -m venv .venv
 ### 3-4. フロントエンドのビルドと静的配置
 
 ```bash
-cd /var/www/daini-vod/frontend
+cd /var/www/dai2flix/frontend
 npm ci
 npm run build
 
-# ビルド成果物 (dist/) が /var/www/daini-vod/dist に存在することを確認
-ls -la /var/www/daini-vod/dist
+# ビルド成果物 (dist/) が /var/www/dai2flix/dist に存在することを確認
+ls -la /var/www/dai2flix/dist
 ```
 
 ### 3-5. Apache2 バーチャルホストの設定
@@ -128,13 +128,13 @@ ls -la /var/www/daini-vod/dist
 
 ```bash
 # 設定ファイルの配置
-sudo cp /var/www/daini-vod/infra/apache-daini-vod.conf /etc/apache2/sites-available/daini-vod.conf
+sudo cp /var/www/dai2flix/infra/apache-dai2flix.conf /etc/apache2/sites-available/dai2flix.conf
 
 # ドメイン名やポートを環境に合わせて編集（任意）
-# sudo nano /etc/apache2/sites-available/daini-vod.conf
+# sudo nano /etc/apache2/sites-available/dai2flix.conf
 
 # サイトの有効化と設定構文チェック
-sudo a2ensite daini-vod.conf
+sudo a2ensite dai2flix.conf
 sudo apache2ctl configtest
 
 # Apacheの再読み込み
@@ -145,37 +145,37 @@ sudo systemctl reload apache2
 
 ```bash
 # サービスファイルの配置
-sudo cp /var/www/daini-vod/infra/daini-vod-backend.service /etc/systemd/system/daini-vod-backend.service
+sudo cp /var/www/dai2flix/infra/dai2flix-backend.service /etc/systemd/system/dai2flix-backend.service
 
 # ディレクトリ所有権を www-data（実行ユーザー）に調整
-sudo chown -R www-data:www-data /var/www/daini-vod
+sudo chown -R www-data:www-data /var/www/dai2flix
 
 # systemd デーモンのリロードと起動・自動起動の有効化
 sudo systemctl daemon-reload
-sudo systemctl enable daini-vod-backend
-sudo systemctl start daini-vod-backend
+sudo systemctl enable dai2flix-backend
+sudo systemctl start dai2flix-backend
 
 # 起動状態の確認
-sudo systemctl status daini-vod-backend
+sudo systemctl status dai2flix-backend
 ```
 
 ### 3-7. cron（同期バッチ）および logrotate の設定
 
 ```bash
 # ログ出力用ディレクトリの作成
-sudo mkdir -p /var/log/daini-vod
-sudo chown -R www-data:www-data /var/log/daini-vod
+sudo mkdir -p /var/log/dai2flix
+sudo chown -R www-data:www-data /var/log/dai2flix
 
 # cron設定の配置（パーミッションは644必須）
-sudo cp /var/www/daini-vod/infra/daini-vod.cron /etc/cron.d/daini-vod-sync
-sudo chmod 644 /etc/cron.d/daini-vod-sync
+sudo cp /var/www/dai2flix/infra/dai2flix.cron /etc/cron.d/dai2flix-sync
+sudo chmod 644 /etc/cron.d/dai2flix-sync
 
 # logrotate設定の配置
-sudo cp /var/www/daini-vod/infra/daini-vod.logrotate /etc/logrotate.d/daini-vod
-sudo chmod 644 /etc/logrotate.d/daini-vod
+sudo cp /var/www/dai2flix/infra/dai2flix.logrotate /etc/logrotate.d/dai2flix
+sudo chmod 644 /etc/logrotate.d/dai2flix
 
 # logrotateのドライラン確認
-sudo logrotate -d /etc/logrotate.d/daini-vod
+sudo logrotate -d /etc/logrotate.d/dai2flix
 ```
 
 ---
@@ -186,14 +186,14 @@ sudo logrotate -d /etc/logrotate.d/daini-vod
 
 ```bash
 # .env.example からコピー
-sudo cp /var/www/daini-vod/backend/.env.example /var/www/daini-vod/backend/.env
+sudo cp /var/www/dai2flix/backend/.env.example /var/www/dai2flix/backend/.env
 
 # www-data 以外からの読み書きを禁止 (chmod 600)
-sudo chown www-data:www-data /var/www/daini-vod/backend/.env
-sudo chmod 600 /var/www/daini-vod/backend/.env
+sudo chown www-data:www-data /var/www/dai2flix/backend/.env
+sudo chmod 600 /var/www/dai2flix/backend/.env
 
 # エディタで開き、実際のキーを入力
-sudo nano /var/www/daini-vod/backend/.env
+sudo nano /var/www/dai2flix/backend/.env
 ```
 
 ### `.env` の設定項目一覧
@@ -216,10 +216,10 @@ CHANNEL_ID=UCbfRz3J6n7G4t1v1Kj9M2xA
 SYNC_PLAYLIST_IDS=
 
 # データベース接続文字列（SQLite WALモード）
-DATABASE_URL=sqlite:////var/www/daini-vod/backend/daini_vod.db
+DATABASE_URL=sqlite:////var/www/dai2flix/backend/dai2flix.db
 
 # 排他ロックファイルパス
-LOCK_FILE_PATH=/var/www/daini-vod/backend/sync.lock
+LOCK_FILE_PATH=/var/www/dai2flix/backend/sync.lock
 
 # サーバーバインド設定
 HOST=127.0.0.1
@@ -229,7 +229,7 @@ LOG_LEVEL=INFO
 
 設定反映のため、バックエンドを再起動します:
 ```bash
-sudo systemctl restart daini-vod-backend
+sudo systemctl restart dai2flix-backend
 ```
 
 ---
@@ -258,12 +258,12 @@ cronの深夜3時を待たずに、初回データを即座に収集します。
 
 ```bash
 # www-data ユーザー権限で同期バッチを手動トリガー
-sudo -u www-data /var/www/daini-vod/.venv/bin/python /var/www/daini-vod/backend/scripts/sync_batch.py
+sudo -u www-data /var/www/dai2flix/.venv/bin/python /var/www/dai2flix/backend/scripts/sync_batch.py
 ```
 
 ログ出力例:
 ```text
-[2026-09-17 14:00:00] [INFO] sync_batch: Starting Daini-group VOD sync batch...
+[2026-09-17 14:00:00] [INFO] sync_batch: Starting DAI2FLIX sync batch...
 [2026-09-17 14:00:01] [INFO] sync_batch: Found 12 target playlists for synchronization.
 [2026-09-17 14:00:05] [INFO] sync_batch: Fetching details for 86 unique videos...
 [2026-09-17 14:00:10] [INFO] sync_batch: Found 86 new videos requiring AI enrichment.
@@ -309,7 +309,7 @@ Webブラウザまたは curl で、機密ファイルへのアクセスが **40
 # 以下のリクエストがすべて HTTP 403 Forbidden になることを確認
 curl -I http://localhost/.env
 curl -I http://localhost/backend/.env
-curl -I http://localhost/daini_vod.db
+curl -I http://localhost/dai2flix.db
 curl -I http://localhost/.git/config
 ```
 
@@ -317,10 +317,10 @@ curl -I http://localhost/.git/config
 
 | 症状 | 原因と対処法 |
 | :--- | :--- |
-| **APIアクセス時に 502 Bad Gateway** | FastAPIサービスが停止している可能性があります。<br>`sudo systemctl status daini-vod-backend`<br>`sudo journalctl -u daini-vod-backend -n 50` でログを確認してください。 |
-| **同期バッチが起動しない / スキップされる** | 前回のプロセスが異常終了しロックファイルが残っている可能性があります。<br>`sudo -u www-data /var/www/daini-vod/.venv/bin/python /var/www/daini-vod/backend/scripts/sync_batch.py --force-unlock` を実行してロックを解除してください。 |
+| **APIアクセス時に 502 Bad Gateway** | FastAPIサービスが停止している可能性があります。<br>`sudo systemctl status dai2flix-backend`<br>`sudo journalctl -u dai2flix-backend -n 50` でログを確認してください。 |
+| **同期バッチが起動しない / スキップされる** | 前回のプロセスが異常終了しロックファイルが残っている可能性があります。<br>`sudo -u www-data /var/www/dai2flix/.venv/bin/python /var/www/dai2flix/backend/scripts/sync_batch.py --force-unlock` を実行してロックを解除してください。 |
 | **Gemini AIのエンリッチメントがスキップされる** | `backend/.env` 内の `GEMINI_API_KEY` が未設定、またはAPIクオータ超過の可能性があります。<br>ヒューリスティックフォールバックによりバッチ自体は正常終了しますが、AI StudioのAPIキー有効性を確認してください。 |
-| **画面が真っ白 / 404エラー** | ApacheのSPAルーティングが無効になっている可能性があります。<br>`/etc/apache2/sites-available/daini-vod.conf` 内の `FallbackResource /index.html` が記載されているか確認し、`sudo a2enmod rewrite && sudo systemctl restart apache2` を実行してください。 |
+| **画面が真っ白 / 404エラー** | ApacheのSPAルーティングが無効になっている可能性があります。<br>`/etc/apache2/sites-available/dai2flix.conf` 内の `FallbackResource /index.html` が記載されているか確認し、`sudo a2enmod rewrite && sudo systemctl restart apache2` を実行してください。 |
 
 ---
 

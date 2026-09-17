@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { VideoItem, RowItem } from '../types';
 
-const STORAGE_KEY = 'daini_vod_watch_history_v1';
+const STORAGE_KEY = 'dai2flix_watch_history_v1';
 const MAX_HISTORY_ITEMS = 20;
 
 export function useWatchHistory() {

@@ -36,13 +36,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onHistoryClick }) => {
           <a
             href="/"
             className="flex items-center space-x-2 group focus:outline-none"
-            aria-label="DAINI FLIX Home"
+            aria-label="DAI2FLIX Home"
           >
             <div className="w-8 h-8 rounded bg-netflix-red flex items-center justify-center font-black text-white shadow-lg shadow-netflix-red/40 group-hover:scale-105 transition-transform">
               <Film className="w-5 h-5" />
             </div>
             <span className="text-2xl font-black tracking-wider text-netflix-red uppercase select-none drop-shadow-md">
-              DAINI<span className="text-white ml-1">FLIX</span>
+              DAI2<span className="text-white ml-0.5">FLIX</span>
             </span>
           </a>
 

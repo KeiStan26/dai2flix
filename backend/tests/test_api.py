@@ -49,7 +49,7 @@ def test_root_endpoint(client_and_session):
     response = client.get("/")
     assert response.status_code == 200
     data = response.json()
-    assert data["service"] == "Daini Group Netflix-style VOD API"
+    assert data["service"] == "DAI2FLIX API"
     assert "/api/health" in data["health"]
     assert "/api/v1/feed" in data["feed"]
 

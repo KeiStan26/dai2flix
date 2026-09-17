@@ -1,6 +1,6 @@
-# DAINI FLIX (だいにぐるーぷ特化型 Netflix風動画Webアプリ)
+# DAI2FLIX (だいにぐるーぷ特化型 Netflix風動画Webアプリ)
 
-[![CI](https://github.com/your-username/daini-vod/actions/workflows/main.yml/badge.svg)](https://github.com/your-username/daini-vod/actions)
+[![CI](https://github.com/your-username/dai2flix/actions/workflows/main.yml/badge.svg)](https://github.com/your-username/dai2flix/actions)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688)
 ![React](https://img.shields.io/badge/React-18-61DAFB)
@@ -44,13 +44,13 @@ graph TD
     User["ブラウザ / ユーザー"] -->|HTTP / 80| Apache["Apache2 Webサーバー (Ubuntu)"]
     
     subgraph "Frontend (Static SPA)"
-        Apache -->|静的配信| Dist["/var/www/daini-vod/dist (React + Tailwind)"]
+        Apache -->|静的配信| Dist["/var/www/dai2flix/dist (React + Tailwind)"]
         Dist -->|localStorage| History["視聴履歴 (Local Browser)"]
     end
     
     subgraph "Backend Daemon (127.0.0.1:8000)"
         Apache -->|ProxyPass /api/| FastAPI["FastAPI (systemd 常駐サービス)"]
-        FastAPI -->|WAL Mode| DB[(SQLite: daini_vod.db)]
+        FastAPI -->|WAL Mode| DB[(SQLite: dai2flix.db)]
     end
 
     subgraph "Daily Batch (cron 03:00 AM)"
@@ -72,7 +72,7 @@ graph TD
 | **データベース** | SQLite 3 (WALモード有効化 / PRAGMA同期) |
 | **データ同期** | YouTube Data API v3 (REST) / Google GenAI SDK (Gemini 2.5 Flash) |
 | **フロントエンド** | React 18 / TypeScript / Vite / Tailwind CSS / Lucide Icons |
-| **プロセス管理** | systemd (`daini-vod-backend.service`) |
+| **プロセス管理** | systemd (`dai2flix-backend.service`) |
 | **スケジューリング** | cron / logrotate |
 
 ---
@@ -82,8 +82,8 @@ graph TD
 ### 1. リポジトリのクローンと環境変数の準備
 
 ```bash
-git clone https://github.com/your-username/daini-vod.git
-cd daini-vod
+git clone https://github.com/your-username/dai2flix.git
+cd dai2flix
 
 # バックエンド用 .env の作成
 cp backend/.env.example backend/.env

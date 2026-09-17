@@ -43,7 +43,7 @@ export const App: React.FC = () => {
           <div className="h-screen w-full flex flex-col items-center justify-center space-y-4 bg-[#141414]">
             <div className="w-12 h-12 border-4 border-netflix-red border-t-transparent rounded-full animate-spin" />
             <p className="text-zinc-400 font-semibold tracking-wider animate-pulse">
-              DAINI FLIX を読み込み中...
+              DAI2FLIX を読み込み中...
             </p>
           </div>
         )}
@@ -104,7 +104,7 @@ export const App: React.FC = () => {
       <footer className="border-t border-white/10 bg-black/60 py-12 px-4 md:px-12 text-zinc-500 text-xs text-center space-y-3">
         <div className="flex items-center justify-center space-x-2 text-zinc-400 font-bold">
           <Film className="w-4 h-4 text-netflix-red" />
-          <span>DAINI FLIX - だいにぐるーぷ非公式ファンメイドVOD</span>
+          <span>DAI2FLIX - だいにぐるーぷ非公式ファンメイドVOD</span>
         </div>
         <p className="max-w-2xl mx-auto leading-relaxed">
           本サービスはYouTubeクリエイター「だいにぐるーぷ」様のファンメイド・アーカイブビューアーです。

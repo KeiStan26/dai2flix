@@ -1,0 +1,18 @@
+# ==============================================================================
+# logrotate configuration for DAINI FLIX batch logs
+# Place at: /etc/logrotate.d/daini-vod
+# ==============================================================================
+
+/var/log/daini-vod/*.log {
+    daily
+    missingok
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 0640 www-data www-data
+    sharedscripts
+    postrotate
+        # Touch or notify if required
+    endscript
+}

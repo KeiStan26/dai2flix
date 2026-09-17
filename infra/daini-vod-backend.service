@@ -1,0 +1,39 @@
+# ==============================================================================
+# systemd service unit for DAINI FLIX FastAPI Backend
+# Place at: /etc/systemd/system/daini-vod-backend.service
+# ==============================================================================
+
+[Unit]
+Description=DAINI FLIX (daini-vod) FastAPI Backend Daemon
+After=network.target
+Documentation=https://github.com/your-username/daini-vod
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/daini-vod/backend
+
+# Environment file with secrets (chmod 600)
+EnvironmentFile=/var/www/daini-vod/backend/.env
+
+# Executable invoking Uvicorn in virtualenv
+ExecStart=/var/www/daini-vod/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+
+# Automatic recovery and restart
+Restart=always
+RestartSec=5s
+
+# Standard output and error to systemd journal
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=daini-vod-backend
+
+# Defensive Security Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

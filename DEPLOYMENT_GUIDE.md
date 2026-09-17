@@ -1,16 +1,38 @@
 # DAI2FLIX 完全手動オペレーション手順書 (DEPLOYMENT_GUIDE.md)
 
-本書は、Antigravityによって生成されたコードベースから、GitHub Public公開、自宅Ubuntu Server（Apache2環境）への配置、デーモン化、日次同期バッチ稼働、ヘルスチェックまでの**全工程を網羅したステップ・バイ・ステップのマニュアル**です。
+本書は、Antigravityによって生成されたコードベースから、GitHub Public公開、自宅Ubuntu Server（Apache2既存稼働環境）への安全な配置、デーモン化、日次同期バッチ稼働、ドメイン公開・HTTPS化までの**全工程を網羅したステップ・バイ・ステップのマニュアル**です。
+
+---
+
+## 既存システムとの共存・非干渉保証について
+
+> [!IMPORTANT]
+> **Q. 既存で運用中の Apache2 や `https://zyuuuukak1n.dev/`（`/var/www/html/`）に干渉しませんか？**
+>
+> **A. はい、完全に干渉しない「安全な分離構成」となっています。**
+>
+> 本システムは以下の多層防御により、既存サイト・既存プロセスへの影響をゼロに抑えています：
+> 1. **Apache VirtualHostの完全独立**:
+>    既存の設定ファイルには一切手を加えず、`/etc/apache2/sites-available/dai2flix.conf` として独立した設定ファイルを新設します。
+> 2. **名前ベースバーチャルホスト（Name-based VirtualHost）による分離**:
+>    `ServerName dai2flix.zyuuuukak1n.dev` を明示指定するため、`zyuuuukak1n.dev` 宛てのリクエストは既存の `/var/www/html/` が引き続き100%処理し、DAI2FLIX側の設定が既存リクエストを横取りすることはありません。
+> 3. **ファイル配置・DocumentRootの分離**:
+>    `/var/www/html/` には一切触れず、`/var/www/dai2flix/` という独立ディレクトリに配置します。
+> 4. **データベース・常駐プロセスの分離**:
+>    既存のDBサーバー（MySQL/PostgreSQL等）を使わず、専用のSQLite（WALモード）で完結。バックエンドFastAPIデーモンも独立したsystemdユニット（`dai2flix-backend.service`）として管理されます。
+> 5. **内部ポートの安全確保**:
+>    FastAPIは外部に公開せず `127.0.0.1:8000`（ローカルループバック）にのみバインドします。既存で8000番ポートが使用中か確認する手順および変更手順も本書に記載しています。
 
 ---
 
 ## 目次
 1. [STEP 1: GitHubリポジトリの初期化とPush](#step-1-githubリポジトリの初期化とpush)
 2. [STEP 2: アーキテクチャ判定結果と設計理由](#step-2-アーキテクチャ判定結果と設計理由)
-3. [STEP 3: 実行・ホスティング環境のセットアップ](#step-3-実行ホスティング環境のセットアップ)
-4. [STEP 4: 環境変数（.env）の配置と設定](#step-4-環境変数envの配置と設定)
-5. [STEP 5: CI/CD（GitHub Actions）の設定](#step-5-cicdgithub-actionsの設定)
-6. [STEP 6: 動作確認・ヘルスチェック・トラブルシューティング](#step-6-動作確認ヘルスチェックトラブルシューティング)
+3. [STEP 3: 既存環境チェックとホスティング環境のセットアップ](#step-3-既存環境チェックとホスティング環境のセットアップ)
+4. [STEP 4: ドメイン公開とSSL/HTTPS化手順（dai2flix.zyuuuukak1n.dev）](#step-4-ドメイン公開とsslhttps化手順)
+5. [STEP 5: 環境変数（.env）の配置と設定](#step-5-環境変数envの配置と設定)
+6. [STEP 6: CI/CD（GitHub Actions）の設定](#step-6-cicdgithub-actionsの設定)
+7. [STEP 7: 動作確認・ヘルスチェック・トラブルシューティング](#step-7-動作確認ヘルスチェックトラブルシューティング)
 
 ---
 
@@ -53,48 +75,54 @@ git push -u origin main
 
 本要件におけるアーキテクチャ選定結果と選定理由は以下の通りです。
 
-| 区分 | 採用技術 | 選定理由と設計判断 |
+| 区分 | 採用技術 | 選定理由と既存環境保護 |
 | :--- | :--- | :--- |
-| **全体区分** | **Webアプリ (FastAPI + React SPA) ＋ 定期実行バッチ** | 自宅Ubuntu Server（Apache2環境）の既存リソースを最大限活用し、外部有料SaaSコストをゼロにするため。 |
-| **Webサーバー / リバースプロキシ** | **Apache 2.4 (VirtualHost / ProxyPass)** | 既存稼働サイトを保護するため独立したバーチャルホスト設定ファイル（`/etc/apache2/sites-available/dai2flix.conf`）を作成。SPA用ルーティング（`FallbackResource`）と機密ファイル遮断をWebサーバー層で強制。 |
+| **全体区分** | **Webアプリ (FastAPI + React SPA) ＋ 定期実行バッチ** | 自宅Ubuntu Server（Apache2環境）の既存リソースを最大限活用し、追加クラウド課金をゼロにするため。 |
+| **Webサーバー / リバースプロキシ** | **Apache 2.4 (VirtualHost / ProxyPass)** | 既存の `zyuuuukak1n.dev`（`/var/www/html/`）に一切干渉しないよう、独立した `ServerName dai2flix.zyuuuukak1n.dev` のVirtualHost（`/etc/apache2/sites-available/dai2flix.conf`）を新設。SPAルーティング（`FallbackResource`）と機密ファイル遮断をWebサーバー層で強制。 |
 | **バックエンド** | **FastAPI + Uvicorn (systemd 常駐)** | 非同期高速処理、Pydanticによる厳格な入出力バリデーション、N+1問題を抑止するSQLAlchemy 2.0を採用。systemdで自動復旧・サンドボックス化。 |
-| **データベース** | **SQLite (WALモード有効化)** | PostgreSQL等の重厚な外部DBサーバー構築を避け、メンテナンスフリーを実現。WAL（Write-Ahead Logging）により、バッチ書き込み中もWeb読み込みがブロックされない高並行性を担保。 |
+| **データベース** | **SQLite (WALモード有効化)** | 既存のDBサーバーに影響を与えない単一ファイル完結型。WALモードにより、cronバッチ書き込み中もWeb読み込みがブロックされない高並行性を担保。 |
 | **データ同期バッチ** | **Python (cron 毎日深夜3時実行)** | YouTube APIクオータ消費を最小化（`search.list`完全排除、`playlists.list` / `playlistItems.list` / `videos.list` のみ使用）。Gemini APIは新着動画検知時のみ1回実行し、コストとクオータを保護。多重起動はPID検証付きファイルロック（`BatchLock`）で防止。 |
-| **フロントエンド** | **React + Tailwind CSS (SPA)** | Netflixの漆黒テーマ・マイクロインタラクションを再現。パーソナライズはブラウザの `localStorage` で処理し、サーバーレス・認証不要による完全放置運用を実現。 |
+| **フロントエンド** | **React + Tailwind CSS (SPA)** | Netflixの漆黒テーマ・マイクロインタラクションを再現。パーソナライズはブラウザの `localStorage` で処理し、ユーザー認証テーブルを作らないことで保守工数ゼロ・個人情報リスクゼロを実現。 |
 
 ---
 
-## STEP 3: 実行・ホスティング環境のセットアップ
+## STEP 3: 既存環境チェックとホスティング環境のセットアップ
 
 自宅のUbuntu Server上で以下の作業を実行します。
 
-### 3-1. 必要なパッケージのインストール
-Ubuntu Serverにログインし、Python, Node.js, Apache2モジュールを導入します。
+### 3-1. 既存ポート衝突の事前確認（非干渉チェック）
+バックエンドFastAPIがデフォルトで使用するポート `8000` が、既に他のサービスで使用されていないか確認します。
 
 ```bash
-sudo apt update && sudo apt install -y \
-  git \
-  python3 \
-  python3-venv \
-  python3-pip \
-  nodejs \
-  npm \
-  apache2 \
-  logrotate
+# 8000番ポートの使用状況を確認
+sudo ss -tulpn | grep :8000
+# または
+sudo lsof -i :8000
+```
+- **何も表示されなければOKです（8000番が利用可能）。**
+- ※もし既に別のアプリが8000番を使用している場合は、後述の「ポート番号の変更手順」に従って `8008` 等の空きポートに変更してください。
 
-# Apacheの必要モジュールを有効化
+### 3-2. 必要なパッケージとApacheモジュールの確認
+既にApache2が稼働中の環境のため、必要なモジュールが有効になっているか確認し、不足しているものだけを有効化します。
+
+```bash
+# 必要なApacheモジュールを有効化（既に有効な場合はスキップされます）
 sudo a2enmod proxy
 sudo a2enmod proxy_http
 sudo a2enmod rewrite
 sudo a2enmod headers
 sudo a2enmod deflate
-sudo systemctl restart apache2
+
+# 設定構文をチェックしてからApacheをリロード
+sudo apache2ctl configtest
+sudo systemctl reload apache2
 ```
 
-### 3-2. プロジェクトコードの配置
+### 3-3. プロジェクトコードの配置（独立ディレクトリ）
+既存の `/var/www/html/` とは完全に分離された `/var/www/dai2flix/` を作成します。
 
 ```bash
-# アプリケーション配置ディレクトリの作成
+# 独立ディレクトリの作成
 sudo mkdir -p /var/www/dai2flix
 sudo chown -R $USER:$USER /var/www/dai2flix
 
@@ -103,7 +131,7 @@ git clone https://github.com/your-username/dai2flix.git /var/www/dai2flix
 cd /var/www/dai2flix
 ```
 
-### 3-3. Python仮想環境と依存関係のセットアップ
+### 3-4. Python仮想環境と依存関係のセットアップ
 
 ```bash
 cd /var/www/dai2flix
@@ -112,33 +140,15 @@ python3 -m venv .venv
 ./.venv/bin/pip install -r backend/requirements.txt
 ```
 
-### 3-4. フロントエンドのビルドと静的配置
+### 3-5. フロントエンドのビルド
 
 ```bash
 cd /var/www/dai2flix/frontend
 npm ci
 npm run build
 
-# ビルド成果物 (dist/) が /var/www/dai2flix/dist に存在することを確認
+# ビルド成果物 (dist/) が存在することを確認
 ls -la /var/www/dai2flix/dist
-```
-
-### 3-5. Apache2 バーチャルホストの設定
-リポジトリ内の設定ファイルをApacheにコピーし、有効化します。
-
-```bash
-# 設定ファイルの配置
-sudo cp /var/www/dai2flix/infra/apache-dai2flix.conf /etc/apache2/sites-available/dai2flix.conf
-
-# ドメイン名やポートを環境に合わせて編集（任意）
-# sudo nano /etc/apache2/sites-available/dai2flix.conf
-
-# サイトの有効化と設定構文チェック
-sudo a2ensite dai2flix.conf
-sudo apache2ctl configtest
-
-# Apacheの再読み込み
-sudo systemctl reload apache2
 ```
 
 ### 3-6. systemdサービス（バックエンド常駐）の登録
@@ -147,15 +157,15 @@ sudo systemctl reload apache2
 # サービスファイルの配置
 sudo cp /var/www/dai2flix/infra/dai2flix-backend.service /etc/systemd/system/dai2flix-backend.service
 
-# ディレクトリ所有権を www-data（実行ユーザー）に調整
+# ディレクトリ所有権を www-data に付与
 sudo chown -R www-data:www-data /var/www/dai2flix
 
-# systemd デーモンのリロードと起動・自動起動の有効化
+# systemd デーモンのリロードと自動起動有効化
 sudo systemctl daemon-reload
 sudo systemctl enable dai2flix-backend
 sudo systemctl start dai2flix-backend
 
-# 起動状態の確認
+# 正常起動の確認（Active: active (running) であること）
 sudo systemctl status dai2flix-backend
 ```
 
@@ -174,15 +184,111 @@ sudo chmod 644 /etc/cron.d/dai2flix-sync
 sudo cp /var/www/dai2flix/infra/dai2flix.logrotate /etc/logrotate.d/dai2flix
 sudo chmod 644 /etc/logrotate.d/dai2flix
 
-# logrotateのドライラン確認
+# logrotateの構文チェック
 sudo logrotate -d /etc/logrotate.d/dai2flix
 ```
 
 ---
 
-## STEP 4: 環境変数（.env）の配置と設定
+## STEP 4: ドメイン公開とSSL/HTTPS化手順
 
-本番環境のバックエンド設定ファイルを作成し、厳格なパーミッションを付与します。
+既存のメインドメイン `https://zyuuuukak1n.dev/` を保護しながら、DAI2FLIXを公開する手順です。
+**サブドメイン `dai2flix.zyuuuukak1n.dev` を用いる方式（プランA：大推奨）** を推奨します。
+
+### プランA: サブドメイン `dai2flix.zyuuuukak1n.dev` による公開（推奨）
+
+この方式は、既存の `zyuuuukak1n.dev`（`/var/www/html/`）の設定ファイルに**1行も変更を加えない**ため、既存Webサイトの停止・障害リスクがゼロになります。
+
+#### 4-A-1. DNSレコードの追加
+お使いのDNS管理サービス（Cloudflare、お名前.com、Route 53など）で、`zyuuuukak1n.dev` に以下のサブドメインレコードを追加します：
+
+| レコードタイプ | ホスト名 / 名前 | 値 / コンテンツ | 備考 |
+| :--- | :--- | :--- | :--- |
+| **A** | `dai2flix` | 自宅サーバーのグローバルIPアドレス | ルーターでポート80/443がUbuntu Serverに向いていること |
+| *(または CNAME)* | `dai2flix` | `zyuuuukak1n.dev` | 同一IPに向ける場合 |
+
+※DNS反映を確認するコマンド:
+```bash
+dig +short dai2flix.zyuuuukak1n.dev
+# 自宅サーバーのIPが返ってくれば反映完了
+```
+
+#### 4-A-2. Apache バーチャルホストの配置と有効化
+
+```bash
+# 設定ファイルを sites-available に配置
+sudo cp /var/www/dai2flix/infra/apache-dai2flix.conf /etc/apache2/sites-available/dai2flix.conf
+
+# 設定ファイル内の ServerName が dai2flix.zyuuuukak1n.dev になっていることを確認
+grep "ServerName" /etc/apache2/sites-available/dai2flix.conf
+
+# サイトの有効化
+sudo a2ensite dai2flix.conf
+
+# 既存サイトを含めてApache全体の設定構文をチェック
+sudo apache2ctl configtest
+# -> "Syntax OK" と表示されることを確認
+
+# Apacheをリロード（既存サイトの中断なし）
+sudo systemctl reload apache2
+```
+
+この時点で、`http://dai2flix.zyuuuukak1n.dev`（HTTP）でDAI2FLIXが表示され、`https://zyuuuukak1n.dev` は以前と全く変わらず `/var/www/html/` が表示される状態になります。
+
+#### 4-A-3. Certbotによる無料SSL証明書取得（HTTPS化）
+Let's Encrypt（Certbot）を用いて、サブドメイン専用のSSL証明書を取得し、HTTPS化します。
+
+```bash
+# Certbot を実行（Apacheプラグイン）
+sudo certbot --apache -d dai2flix.zyuuuukak1n.dev
+```
+
+対話プロンプトでの選択:
+- メールアドレスの入力（未登録の場合）
+- 利用規約への同意（`Y`）
+- HTTPSへの自動リダイレクト: `2: Redirect - Make all requests redirect to secure HTTPS access`（推奨）
+
+Certbotが自動的に `/etc/apache2/sites-available/dai2flix-le-ssl.conf` を生成し、既存の `zyuuuukak1n.dev` のSSL証明書とは独立して管理されます。
+
+```bash
+# 証明書の自動更新テスト
+sudo certbot renew --dry-run
+```
+
+---
+
+### （参考）プランB: サブディレクトリ `https://zyuuuukak1n.dev/dai2flix/` で公開する場合
+
+もしサブドメインを使用せず、既存のメインドメイン配下の `/dai2flix` パスで公開したい場合は、以下の手順となります。
+*(※既存のVirtualHost設定ファイルを編集する必要があるため、必ずバックアップを取ってから作業してください)*
+
+1. **既存のSSL設定ファイルをバックアップ**:
+   ```bash
+   sudo cp /etc/apache2/sites-available/000-default-le-ssl.conf /etc/apache2/sites-available/000-default-le-ssl.conf.bak
+   ```
+2. **既存の `<VirtualHost *:443>` 内にリバースプロキシとエイリアスを追記**:
+   ```apache
+   # フロントエンド静的ファイル
+   Alias /dai2flix /var/www/dai2flix/dist
+   <Directory /var/www/dai2flix/dist>
+       Options -Indexes +FollowSymLinks
+       AllowOverride None
+       Require all granted
+       FallbackResource /dai2flix/index.html
+   </Directory>
+
+   # バックエンドAPI
+   ProxyPass /dai2flix/api/ http://127.0.0.1:8000/api/
+   ProxyPassReverse /dai2flix/api/ http://127.0.0.1:8000/api/
+   ```
+3. **フロントエンドのベースパス設定**:
+   `frontend/vite.config.ts` に `base: '/dai2flix/'` を設定し、`npm run build` を再実行して静的アセットの参照パスを合わせます。
+
+---
+
+## STEP 5: 環境変数（.env）の配置と設定
+
+バックエンドの設定ファイルを作成し、厳格なパーミッションを付与します。
 
 ```bash
 # .env.example からコピー
@@ -221,11 +327,17 @@ DATABASE_URL=sqlite:////var/www/dai2flix/backend/dai2flix.db
 # 排他ロックファイルパス
 LOCK_FILE_PATH=/var/www/dai2flix/backend/sync.lock
 
-# サーバーバインド設定
+# サーバーバインド設定 (FastAPI)
 HOST=127.0.0.1
 PORT=8000
 LOG_LEVEL=INFO
 ```
+
+> [!TIP]
+> **ポート8000が既存サービスで使用されていた場合**:
+> 1. `backend/.env` の `PORT=8000` を `PORT=8008` 等に変更。
+> 2. `infra/dai2flix-backend.service` の `--port 8000` を `--port 8008` に変更。
+> 3. `infra/apache-dai2flix.conf` の `http://127.0.0.1:8000/` を `http://127.0.0.1:8008/` に変更。
 
 設定反映のため、バックエンドを再起動します:
 ```bash
@@ -234,95 +346,75 @@ sudo systemctl restart dai2flix-backend
 
 ---
 
-## STEP 5: CI/CD（GitHub Actions）の設定
+## STEP 6: CI/CD（GitHub Actions）の設定
 
 本リポジトリには `.github/workflows/main.yml` が同梱されており、GitHubへPushすると自動的に以下が実行されます。
 
-1. **Backend Tests**: Python 3.10, 3.11, 3.12 マトリックスでの単体テスト・結合テスト。
+1. **Backend Tests**: Python 3.10, 3.11, 3.12 マトリックスでの全単体テスト・結合テスト。
 2. **Frontend Build**: Node.js 20 での `npm ci` および TypeScript型チェック付き本番バンドルビルド。
 
-### Secretsの登録（必要な場合）
-単体テストはすべてMock化されているため、CIテストの実行に実APIキーは不要です。
-将来的に本番自動デプロイ（SSH経由の自動Pull＆Restart等）を追加する場合は、GitHubリポジトリの **Settings > Secrets and variables > Actions** に以下を登録します:
-
-- `SERVER_HOST`: 自宅サーバーのグローバルIPまたはDDNSホスト名
-- `SERVER_USER`: SSH接続ユーザー名
-- `SSH_PRIVATE_KEY`: デプロイ用SSH秘密鍵
+単体テストはすべてモック化されているため、GitHub SecretsへのAPIキー登録なしでCIがグリーン（成功）になります。
 
 ---
 
-## STEP 6: 動作確認・ヘルスチェック・トラブルシューティング
+## STEP 7: 動作確認・ヘルスチェック・トラブルシューティング
 
-### 6-1. 初回データ同期バッチの手動実行
-cronの深夜3時を待たずに、初回データを即座に収集します。
+### 7-1. 初回データ同期バッチの手動実行
+cronの深夜3時を待たずに、初回データを即座に収集・永続化します。
 
 ```bash
 # www-data ユーザー権限で同期バッチを手動トリガー
 sudo -u www-data /var/www/dai2flix/.venv/bin/python /var/www/dai2flix/backend/scripts/sync_batch.py
 ```
 
-ログ出力例:
-```text
-[2026-09-17 14:00:00] [INFO] sync_batch: Starting DAI2FLIX sync batch...
-[2026-09-17 14:00:01] [INFO] sync_batch: Found 12 target playlists for synchronization.
-[2026-09-17 14:00:05] [INFO] sync_batch: Fetching details for 86 unique videos...
-[2026-09-17 14:00:10] [INFO] sync_batch: Found 86 new videos requiring AI enrichment.
-[2026-09-17 14:00:40] [INFO] sync_batch: Successfully enriched video '【1週間逃亡生活】' [v_xyz...]
-[2026-09-17 14:01:00] [INFO] sync_batch: Sync batch completed: {'playlists_synced': 12, 'videos_synced': 86, 'videos_enriched': 86, 'errors': 0}
-[2026-09-17 14:01:00] [INFO] sync_batch: Batch lock released successfully.
-```
+### 7-2. 各サイトの疎通確認（干渉チェック）
 
-### 6-2. ヘルスチェックAPIの確認
+1. **既存サイトの正常性確認**:
+   ```bash
+   curl -I https://zyuuuukak1n.dev/
+   # -> HTTP 200 OK が返り、既存の /var/www/html/ が正常に応答することを確認
+   ```
 
-```bash
-# ローカル内部APIの直接疎通確認
-curl -s http://127.0.0.1:8000/api/health | jq .
-```
-期待されるレスポンス:
-```json
-{
-  "status": "healthy",
-  "database": "connected",
-  "video_count": 86,
-  "playlist_count": 12,
-  "last_synced_at": "2026-09-17T05:01:00Z",
-  "version": "0.1.0"
-}
-```
+2. **DAI2FLIX ヘルスチェックAPIの確認**:
+   ```bash
+   curl -s https://dai2flix.zyuuuukak1n.dev/api/health | jq .
+   ```
+   期待されるレスポンス:
+   ```json
+   {
+     "status": "healthy",
+     "database": "connected",
+     "video_count": 86,
+     "playlist_count": 12,
+     "last_synced_at": "2026-09-17T05:01:00Z",
+     "version": "0.1.0"
+   }
+   ```
 
-```bash
-# Apacheリバースプロキシ経由の疎通確認
-curl -s http://localhost/api/health | jq .
-```
+3. **DAI2FLIX Web画面の確認**:
+   ブラウザで `https://dai2flix.zyuuuukak1n.dev/` を開き、Billboardヒーローバナー、公式再生リスト行、AIタグ行、動画クリックでのYouTubeモーダル再生が正常に動作することを確認します。
 
-### 6-3. フィード集約APIの確認
-
-```bash
-curl -s http://localhost/api/v1/feed?limit_per_row=2 | jq .billboard
-```
-
-### 6-4. 機密ファイル遮断のセキュリティ検証
+### 7-3. 機密ファイル遮断のセキュリティ検証
 
 Webブラウザまたは curl で、機密ファイルへのアクセスが **403 Forbidden** で遮断されることを確認します。
 
 ```bash
-# 以下のリクエストがすべて HTTP 403 Forbidden になることを確認
-curl -I http://localhost/.env
-curl -I http://localhost/backend/.env
-curl -I http://localhost/dai2flix.db
-curl -I http://localhost/.git/config
+curl -I https://dai2flix.zyuuuukak1n.dev/.env
+curl -I https://dai2flix.zyuuuukak1n.dev/backend/.env
+curl -I https://dai2flix.zyuuuukak1n.dev/dai2flix.db
+curl -I https://dai2flix.zyuuuukak1n.dev/.git/config
+# -> すべて HTTP 403 Forbidden になれば合格
 ```
 
-### 6-5. トラブルシューティング
+### 7-4. トラブルシューティング
 
 | 症状 | 原因と対処法 |
 | :--- | :--- |
+| **`dai2flix.zyuuuukak1n.dev` にアクセスすると既存サイトが表示される** | Apacheの設定で `dai2flix.conf` が有効化されていないか、デフォルトVirtualHostが優先されています。<br>`sudo a2ensite dai2flix.conf` を実行し、`sudo apache2ctl -S` で VirtualHost の `ServerName` 一覧を確認してください。 |
 | **APIアクセス時に 502 Bad Gateway** | FastAPIサービスが停止している可能性があります。<br>`sudo systemctl status dai2flix-backend`<br>`sudo journalctl -u dai2flix-backend -n 50` でログを確認してください。 |
 | **同期バッチが起動しない / スキップされる** | 前回のプロセスが異常終了しロックファイルが残っている可能性があります。<br>`sudo -u www-data /var/www/dai2flix/.venv/bin/python /var/www/dai2flix/backend/scripts/sync_batch.py --force-unlock` を実行してロックを解除してください。 |
-| **Gemini AIのエンリッチメントがスキップされる** | `backend/.env` 内の `GEMINI_API_KEY` が未設定、またはAPIクオータ超過の可能性があります。<br>ヒューリスティックフォールバックによりバッチ自体は正常終了しますが、AI StudioのAPIキー有効性を確認してください。 |
-| **画面が真っ白 / 404エラー** | ApacheのSPAルーティングが無効になっている可能性があります。<br>`/etc/apache2/sites-available/dai2flix.conf` 内の `FallbackResource /index.html` が記載されているか確認し、`sudo a2enmod rewrite && sudo systemctl restart apache2` を実行してください。 |
+| **画面をリロードすると 404 Not Found になる** | ApacheのSPAルーティングが無効になっている可能性があります。<br>`/etc/apache2/sites-available/dai2flix.conf` 内の `FallbackResource /index.html` が有効か確認し、`sudo a2enmod rewrite && sudo systemctl reload apache2` を実行してください。 |
 
 ---
 
-以上で本番公開と完全放置運用のセットアップは完了です。
-毎日の新着動画が自動同期され、Netflix風のリッチな動画視聴体験が提供されます。
+以上で、既存システム（`https://zyuuuukak1n.dev/`）に一切干渉することなく、DAI2FLIXの本番公開と完全放置運用が完了します。

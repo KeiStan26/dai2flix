@@ -151,23 +151,36 @@ npm run build
 ls -la /var/www/dai2flix/frontend/dist
 ```
 
-### 3-6. systemdサービス（バックエンド常駐）の登録
+### 3-6. 環境変数（.env）の配置と systemd サービスの登録
+
+FastAPIデーモンが起動時に参照する設定ファイル（`.env`）を作成し、systemdサービスを起動します。
 
 ```bash
-# サービスファイルの配置
+# 1. .env.example から本番用 .env を作成
+sudo cp /var/www/dai2flix/backend/.env.example /var/www/dai2flix/backend/.env
+
+# 2. サービスユニットファイルの配置
 sudo cp /var/www/dai2flix/infra/dai2flix-backend.service /etc/systemd/system/dai2flix-backend.service
 
-# ディレクトリ所有権を www-data に付与
+# 3. ディレクトリおよび .env の所有権を www-data に付与（パーミッション 600）
 sudo chown -R www-data:www-data /var/www/dai2flix
+sudo chmod 600 /var/www/dai2flix/backend/.env
 
-# systemd デーモンのリロードと自動起動有効化
+# 4. 必要に応じて .env を開き、実際の API キーを設定
+# sudo nano /var/www/dai2flix/backend/.env
+
+# 5. systemd デーモンのリロードと起動・自動起動有効化
 sudo systemctl daemon-reload
 sudo systemctl enable dai2flix-backend
 sudo systemctl start dai2flix-backend
 
-# 正常起動の確認（Active: active (running) であること）
+# 6. 正常起動の確認（Active: active (running) であること）
 sudo systemctl status dai2flix-backend
 ```
+
+> [!TIP]
+> **万一起動に失敗した場合のログ確認コマンド**:
+> `sudo journalctl -u dai2flix-backend.service -n 50 --no-pager`
 
 ### 3-7. cron（同期バッチ）および logrotate の設定
 

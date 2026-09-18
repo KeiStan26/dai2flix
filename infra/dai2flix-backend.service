@@ -14,8 +14,8 @@ User=www-data
 Group=www-data
 WorkingDirectory=/var/www/dai2flix/backend
 
-# Environment file with secrets (chmod 600)
-EnvironmentFile=/var/www/dai2flix/backend/.env
+# Environment file with secrets (chmod 600, '-' prefix makes it optional to prevent startup crash)
+EnvironmentFile=-/var/www/dai2flix/backend/.env
 
 # Executable invoking Uvicorn in virtualenv
 ExecStart=/var/www/dai2flix/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2

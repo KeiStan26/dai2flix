@@ -340,9 +340,9 @@ DATABASE_URL=sqlite:////var/www/dai2flix/backend/dai2flix.db
 # 排他ロックファイルパス
 LOCK_FILE_PATH=/var/www/dai2flix/backend/sync.lock
 
-# サーバーバインド設定 (FastAPI)
+# サーバーバインド設定 (FastAPI: 既存サービスとの重複を避けるため8008を採用)
 HOST=127.0.0.1
-PORT=8000
+PORT=8008
 LOG_LEVEL=INFO
 ```
 

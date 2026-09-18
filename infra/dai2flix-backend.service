@@ -20,7 +20,7 @@ Environment="PYTHONPATH=/var/www/dai2flix/backend"
 EnvironmentFile=-/var/www/dai2flix/backend/.env
 
 # Executable invoking Uvicorn in virtualenv with explicit --app-dir
-ExecStart=/var/www/dai2flix/.venv/bin/uvicorn app.main:app --app-dir /var/www/dai2flix/backend --host 127.0.0.1 --port 8000 --workers 2
+ExecStart=/var/www/dai2flix/.venv/bin/uvicorn app.main:app --app-dir /var/www/dai2flix/backend --host 127.0.0.1 --port 8008 --workers 2
 
 # Automatic recovery and restart
 Restart=always

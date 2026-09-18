@@ -26,7 +26,7 @@ class Settings(BaseSettings):
 
     # Server & Logging
     host: str = "127.0.0.1"
-    port: int = 8000
+    port: int = 8008
     log_level: str = "INFO"
 
     model_config = SettingsConfigDict(

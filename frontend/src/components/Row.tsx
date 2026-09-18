@@ -31,12 +31,12 @@ export const Row: React.FC<RowProps> = ({ row, onSelectVideo }) => {
   }
 
   return (
-    <div id={row.id} className="space-y-2 md:space-y-3 my-6 md:my-8 px-4 md:px-12 relative group/row">
+    <div id={row.id} className="space-y-1.5 sm:space-y-2 md:space-y-3 my-4 sm:my-6 md:my-8 px-3 sm:px-6 md:px-12 relative group/row">
       {/* Row Header */}
       <div className="flex items-baseline justify-between">
-        <h2 className="text-base sm:text-lg md:text-xl font-bold text-white tracking-wide flex items-center space-x-2">
+        <h2 className="text-sm sm:text-base md:text-xl font-bold text-white tracking-wide flex items-center space-x-2">
           <span>{row.title}</span>
-          <span className="text-xs text-zinc-500 font-normal">
+          <span className="text-[11px] sm:text-xs text-zinc-500 font-normal">
             ({row.items.length})
           </span>
         </h2>
@@ -44,32 +44,32 @@ export const Row: React.FC<RowProps> = ({ row, onSelectVideo }) => {
 
       {/* Row Container with Scroll Controls */}
       <div className="relative">
-        {/* Left Arrow Button */}
+        {/* Left Arrow Button (Desktop Only) */}
         <button
           onClick={() => handleScroll('left')}
-          className={`absolute top-0 bottom-0 left-0 z-30 w-10 sm:w-12 bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover/row:opacity-100 backdrop-blur-xs rounded-r-md ${
+          className={`hidden md:flex absolute top-0 bottom-0 left-0 z-30 w-10 sm:w-12 bg-black/60 hover:bg-black/90 text-white items-center justify-center transition-all duration-300 opacity-0 group-hover/row:opacity-100 backdrop-blur-xs rounded-r-md cursor-pointer ${
             !isMoved ? 'hidden' : 'flex'
           }`}
-          aria-label="Scroll left"
+          aria-label="前へスクロール"
         >
           <ChevronLeft className="w-7 h-7 hover:scale-125 transition-transform" />
         </button>
 
-        {/* Horizontal Slider */}
+        {/* Horizontal Slider with Scroll Snap */}
         <div
           ref={rowRef}
-          className="flex items-center space-x-3 sm:space-x-4 overflow-x-auto no-scrollbar scroll-smooth py-3 px-1"
+          className="flex items-center space-x-2.5 sm:space-x-3.5 md:space-x-4 overflow-x-auto no-scrollbar scroll-smooth py-2 sm:py-3 px-0.5 scroll-snap-x scroll-pl-3 sm:scroll-pl-6 md:scroll-pl-12"
         >
           {row.items.map((video) => (
             <Card key={`${row.id}_${video.id}`} video={video} onSelect={onSelectVideo} />
           ))}
         </div>
 
-        {/* Right Arrow Button */}
+        {/* Right Arrow Button (Desktop Only) */}
         <button
           onClick={() => handleScroll('right')}
-          className="absolute top-0 bottom-0 right-0 z-30 w-10 sm:w-12 bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all duration-300 opacity-0 group-hover/row:opacity-100 backdrop-blur-xs rounded-l-md"
-          aria-label="Scroll right"
+          className="hidden md:flex absolute top-0 bottom-0 right-0 z-30 w-10 sm:w-12 bg-black/60 hover:bg-black/90 text-white items-center justify-center transition-all duration-300 opacity-0 group-hover/row:opacity-100 backdrop-blur-xs rounded-l-md cursor-pointer"
+          aria-label="次へスクロール"
         >
           <ChevronRight className="w-7 h-7 hover:scale-125 transition-transform" />
         </button>

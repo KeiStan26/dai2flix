@@ -38,13 +38,40 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 pb-16">
-        {/* Loading State */}
+        {/* Loading Skeleton State */}
         {loading && !data && (
-          <div className="h-screen w-full flex flex-col items-center justify-center space-y-4 bg-[#141414]">
-            <div className="w-12 h-12 border-4 border-netflix-red border-t-transparent rounded-full animate-spin" />
-            <p className="text-zinc-400 font-semibold tracking-wider animate-pulse">
-              DAI2FLIX を読み込み中...
-            </p>
+          <div className="w-full space-y-6 sm:space-y-8 animate-fadeIn">
+            {/* Billboard Skeleton */}
+            <div className="relative min-h-[500px] h-[72vh] sm:h-[80vh] md:h-[85vh] w-full bg-[#181818] animate-shimmer overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/50 to-transparent" />
+              <div className="absolute bottom-[10%] sm:bottom-[15%] left-3 sm:left-6 md:left-12 space-y-3 max-w-xl">
+                <div className="w-28 h-5 bg-white/10 rounded" />
+                <div className="w-48 h-4 bg-white/10 rounded" />
+                <div className="w-full sm:w-96 h-8 sm:h-12 bg-white/10 rounded" />
+                <div className="w-4/5 h-4 bg-white/10 rounded" />
+                <div className="flex space-x-3 pt-2">
+                  <div className="w-24 sm:w-32 h-10 bg-white/20 rounded-md" />
+                  <div className="w-24 sm:w-32 h-10 bg-white/10 rounded-md" />
+                </div>
+              </div>
+            </div>
+
+            {/* Row Skeletons */}
+            <div className="-mt-12 sm:-mt-20 md:-mt-28 relative z-20 space-y-6 sm:space-y-8 px-3 sm:px-6 md:px-12">
+              {[1, 2, 3].map((idx) => (
+                <div key={idx} className="space-y-3">
+                  <div className="w-36 sm:w-48 h-5 bg-white/10 rounded" />
+                  <div className="flex space-x-3 overflow-hidden">
+                    {[1, 2, 3, 4, 5].map((cardIdx) => (
+                      <div
+                        key={cardIdx}
+                        className="flex-shrink-0 w-[200px] sm:w-[250px] md:w-[280px] aspect-video bg-[#1e1e1e] rounded-md animate-shimmer border border-white/5"
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -52,11 +79,11 @@ export const App: React.FC = () => {
         {error && !data && (
           <div className="h-screen w-full flex flex-col items-center justify-center px-4 text-center bg-[#141414]">
             <AlertCircle className="w-16 h-16 text-netflix-red mb-4 animate-bounce" />
-            <h2 className="text-2xl font-black mb-2">動画フィードの取得に失敗しました</h2>
-            <p className="text-zinc-400 max-w-md mb-6">{error}</p>
+            <h2 className="text-xl sm:text-2xl font-black mb-2">動画フィードの取得に失敗しました</h2>
+            <p className="text-zinc-400 max-w-md text-sm mb-6">{error}</p>
             <button
               onClick={() => refetch()}
-              className="flex items-center space-x-2 bg-netflix-red hover:bg-netflix-darkRed text-white px-6 py-2.5 rounded-md font-bold transition-transform hover:scale-105 shadow-lg"
+              className="flex items-center space-x-2 bg-netflix-red hover:bg-netflix-darkRed active:scale-95 text-white px-6 py-2.5 rounded-md font-bold transition-transform shadow-lg cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
               <span>再試行する</span>
@@ -75,7 +102,7 @@ export const App: React.FC = () => {
             />
 
             {/* Negative margin container for Netflix row overlap on billboard bottom */}
-            <div className="-mt-16 sm:-mt-24 md:-mt-32 relative z-20 space-y-6">
+            <div className="-mt-12 sm:-mt-20 md:-mt-28 relative z-20 space-y-4 sm:space-y-6">
               {/* 2. Dynamically Injected Watch History Row (Highest Priority) */}
               {historyRow && (
                 <div id="row_watch_history" className="animate-fadeIn">

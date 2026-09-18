@@ -8,6 +8,7 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onHistoryClick }) => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [useImageLogo, setUseImageLogo] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,12 +40,23 @@ export const Navbar: React.FC<NavbarProps> = ({ onHistoryClick }) => {
             className="flex items-center space-x-1.5 sm:space-x-2 group focus:outline-none select-none"
             aria-label="DAI2FLIX Home"
           >
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-netflix-red flex items-center justify-center font-black text-white shadow-lg shadow-netflix-red/40 group-hover:scale-105 transition-transform">
-              <Film className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
-            <span className="text-xl sm:text-2xl font-black tracking-wider text-netflix-red uppercase drop-shadow-md">
-              DAI2<span className="text-white ml-0.5">FLIX</span>
-            </span>
+            {useImageLogo ? (
+              <img
+                src="/logo.png"
+                alt="DAI2FLIX"
+                className="h-7 sm:h-8 md:h-9 w-auto object-contain transition-transform group-hover:scale-105"
+                onError={() => setUseImageLogo(false)}
+              />
+            ) : (
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-netflix-red flex items-center justify-center font-black text-white shadow-lg shadow-netflix-red/40 group-hover:scale-105 transition-transform">
+                  <Film className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <span className="text-xl sm:text-2xl font-black tracking-wider text-netflix-red uppercase drop-shadow-md">
+                  DAI2<span className="text-white ml-0.5">FLIX</span>
+                </span>
+              </div>
+            )}
           </a>
 
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium text-zinc-300">
@@ -76,7 +88,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onHistoryClick }) => {
           </button>
 
           <a
-            href="https://www.youtube.com/@dainigroup"
+            href="https://www.youtube.com/@dai2group"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold bg-netflix-red hover:bg-netflix-darkRed active:scale-95 text-white transition-all shadow-md shadow-netflix-red/30 cursor-pointer"

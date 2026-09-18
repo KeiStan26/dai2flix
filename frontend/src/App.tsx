@@ -111,9 +111,23 @@ export const App: React.FC = () => {
               )}
 
               {/* 3. Server Aggregated Rows (Playlists, Mood Tags, Recents) */}
-              {data.rows.map((row) => (
-                <Row key={row.id} row={row} onSelectVideo={handleOpenVideo} />
-              ))}
+              {data.rows.map((row, idx) => {
+                const isFirstPlaylist =
+                  row.type === 'playlist' &&
+                  (idx === 0 || data.rows[idx - 1].type !== 'playlist');
+
+                const isFirstTag =
+                  row.type === 'tag' &&
+                  (idx === 0 || data.rows[idx - 1].type !== 'tag');
+
+                return (
+                  <React.Fragment key={row.id}>
+                    {isFirstPlaylist && <div id="playlists" className="scroll-mt-24 sm:scroll-mt-28" />}
+                    {isFirstTag && <div id="ai-categories" className="scroll-mt-24 sm:scroll-mt-28" />}
+                    <Row row={row} onSelectVideo={handleOpenVideo} />
+                  </React.Fragment>
+                );
+              })}
             </div>
           </>
         )}

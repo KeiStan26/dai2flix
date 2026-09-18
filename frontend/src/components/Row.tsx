@@ -31,7 +31,7 @@ export const Row: React.FC<RowProps> = ({ row, onSelectVideo }) => {
   }
 
   return (
-    <div id={row.id} className="space-y-1.5 sm:space-y-2 md:space-y-3 my-4 sm:my-6 md:my-8 px-3 sm:px-6 md:px-12 relative group/row">
+    <div id={row.id} className="space-y-1.5 sm:space-y-2 md:space-y-3 my-4 sm:my-6 md:my-8 px-3 sm:px-6 md:px-12 relative group/row scroll-mt-24 sm:scroll-mt-28">
       {/* Row Header */}
       <div className="flex items-baseline justify-between">
         <h2 className="text-sm sm:text-base md:text-xl font-bold text-white tracking-wide flex items-center space-x-2">

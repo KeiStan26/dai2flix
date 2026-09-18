@@ -162,9 +162,10 @@ sudo cp /var/www/dai2flix/backend/.env.example /var/www/dai2flix/backend/.env
 # 2. サービスユニットファイルの配置
 sudo cp /var/www/dai2flix/infra/dai2flix-backend.service /etc/systemd/system/dai2flix-backend.service
 
-# 3. ディレクトリおよび .env の所有権を www-data に付与（パーミッション 600）
-sudo chown -R www-data:www-data /var/www/dai2flix
-sudo chmod 600 /var/www/dai2flix/backend/.env
+# 3. 所有権をログインユーザー、グループを www-data に設定し、グループ読み取り(640)・書き込み権限(775)を付与
+sudo chown -R $USER:www-data /var/www/dai2flix
+sudo chmod 640 /var/www/dai2flix/backend/.env
+sudo chmod 775 /var/www/dai2flix/backend
 
 # 4. 必要に応じて .env を開き、実際の API キーを設定
 # sudo nano /var/www/dai2flix/backend/.env

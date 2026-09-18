@@ -147,8 +147,8 @@ cd /var/www/dai2flix/frontend
 npm ci
 npm run build
 
-# ビルド成果物 (dist/) が存在することを確認
-ls -la /var/www/dai2flix/dist
+# ビルド成果物 (frontend/dist/) が存在することを確認
+ls -la /var/www/dai2flix/frontend/dist
 ```
 
 ### 3-6. systemdサービス（バックエンド常駐）の登録
@@ -269,8 +269,8 @@ sudo certbot renew --dry-run
 2. **既存の `<VirtualHost *:443>` 内にリバースプロキシとエイリアスを追記**:
    ```apache
    # フロントエンド静的ファイル
-   Alias /dai2flix /var/www/dai2flix/dist
-   <Directory /var/www/dai2flix/dist>
+   Alias /dai2flix /var/www/dai2flix/frontend/dist
+   <Directory /var/www/dai2flix/frontend/dist>
        Options -Indexes +FollowSymLinks
        AllowOverride None
        Require all granted

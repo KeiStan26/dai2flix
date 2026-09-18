@@ -44,7 +44,7 @@ graph TD
     User["ブラウザ / ユーザー"] -->|HTTP / 80| Apache["Apache2 Webサーバー (Ubuntu)"]
     
     subgraph "Frontend (Static SPA)"
-        Apache -->|静的配信| Dist["/var/www/dai2flix/dist (React + Tailwind)"]
+        Apache -->|静的配信| Dist["/var/www/dai2flix/frontend/dist (React + Tailwind)"]
         Dist -->|localStorage| History["視聴履歴 (Local Browser)"]
     end
     

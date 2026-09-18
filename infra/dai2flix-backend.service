@@ -14,11 +14,13 @@ User=www-data
 Group=www-data
 WorkingDirectory=/var/www/dai2flix/backend
 
+# Ensure Python can import packages from backend directory
+Environment="PYTHONPATH=/var/www/dai2flix/backend"
 # Environment file with secrets (chmod 600, '-' prefix makes it optional to prevent startup crash)
 EnvironmentFile=-/var/www/dai2flix/backend/.env
 
-# Executable invoking Uvicorn in virtualenv
-ExecStart=/var/www/dai2flix/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+# Executable invoking Uvicorn in virtualenv with explicit --app-dir
+ExecStart=/var/www/dai2flix/.venv/bin/uvicorn app.main:app --app-dir /var/www/dai2flix/backend --host 127.0.0.1 --port 8000 --workers 2
 
 # Automatic recovery and restart
 Restart=always

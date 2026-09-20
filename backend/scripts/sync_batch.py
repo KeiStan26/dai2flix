@@ -28,7 +28,7 @@ from app.config import get_settings
 from app.database import SessionLocal, init_db
 from app.models import AIEnrichment, Playlist, PlaylistVideo, Video
 from app.services.enricher import MetadataEnricher
-from app.services.youtube import YouTubeClient, YouTubeQuotaExceededError
+from app.services.youtube import YouTubeClient, YouTubeQuotaExceededError, derive_channel_playlist_id
 
 # Configure structured logging
 logging.basicConfig(
@@ -149,14 +149,57 @@ class SyncService:
             return stats
 
         try:
-            # 1. Resolve Target Playlists
+            all_video_ids: Set[str] = set()
+            playlist_items_map: Dict[str, List[Dict]] = {}
+            members_only_ids: Set[str] = set()
+
+            # 1. Fetch UUMO (Members-only playlist) if channel_id is available
+            channel_id = self.settings.channel_id
+            uumo_id = derive_channel_playlist_id(channel_id, "UUMO")
+            if uumo_id:
+                try:
+                    logger.info("Fetching members-only playlist (%s)...", uumo_id)
+                    mo_items = self.youtube_client.get_playlist_items(uumo_id, max_results=200)
+                    for item in mo_items:
+                        members_only_ids.add(item["video_id"])
+                        all_video_ids.add(item["video_id"])
+                    logger.info("Identified %d members-only video IDs from UUMO playlist.", len(members_only_ids))
+                    playlist_items_map[uumo_id] = mo_items
+
+                    # Register/upsert this playlist entity
+                    db_pl = self.db.query(Playlist).filter_by(id=uumo_id).first()
+                    thumb = mo_items[0].get("thumbnail_url") if mo_items else None
+                    if not db_pl:
+                        db_pl = Playlist(
+                            id=uumo_id,
+                            title="👑 メンバーシップ限定アーカイブ",
+                            description="だいにぐるーぷ公式チャンネル メンバーシップ限定コンテンツ",
+                            thumbnail_url=thumb,
+                            display_order=5,
+                        )
+                        self.db.add(db_pl)
+                    else:
+                        db_pl.title = "👑 メンバーシップ限定アーカイブ"
+                        if thumb:
+                            db_pl.thumbnail_url = thumb
+                    self.db.commit()
+                    stats["playlists_synced"] += 1
+                except Exception as mo_err:
+                    logger.warning("Could not fetch UUMO playlist (%s): %s. Will rely on keywords.", uumo_id, mo_err)
+
+            # Helper for members-only detection
+            def is_mo_video(vid: str, title: str, desc: str) -> bool:
+                if vid in members_only_ids:
+                    return True
+                text = f"{title} {desc}".lower()
+                keywords = ["メンバー限定", "メンバーシップ限定", "メン限", "【メンバーシップ】", "会員限定", "ファンクラブ限定", "fc限定"]
+                return any(kw in text for kw in keywords)
+
+            # 2. Resolve Target Playlists
             target_playlists = self._resolve_target_playlists()
             logger.info("Found %d target playlists for synchronization.", len(target_playlists))
 
-            all_video_ids: Set[str] = set()
-            playlist_items_map: Dict[str, List[Dict]] = {}
-
-            # 2. Sync Playlists and collect video IDs
+            # 3. Sync Playlists and collect video IDs
             for p in target_playlists:
                 try:
                     # Upsert playlist entity
@@ -187,13 +230,14 @@ class SyncService:
                     self.db.rollback()
                     stats["errors"] += 1
 
-            # 3. Batch fetch detailed video metadata (50 IDs per API unit)
+            # 4. Batch fetch detailed video metadata (50 IDs per API unit)
             if all_video_ids:
                 logger.info("Fetching details for %d unique videos...", len(all_video_ids))
                 details_map = self.youtube_client.get_videos_details(list(all_video_ids))
 
-                # Upsert videos
+                # Upsert videos with is_members_only flag
                 for vid, vdata in details_map.items():
+                    is_mo = is_mo_video(vid, vdata.title, vdata.description or "")
                     db_video = self.db.query(Video).filter_by(id=vid).first()
                     if not db_video:
                         db_video = Video(
@@ -204,6 +248,7 @@ class SyncService:
                             thumbnail_url=vdata.thumbnail_url,
                             duration_seconds=vdata.duration_seconds,
                             view_count=vdata.view_count,
+                            is_members_only=is_mo,
                         )
                         self.db.add(db_video)
                     else:
@@ -213,6 +258,7 @@ class SyncService:
                         db_video.thumbnail_url = vdata.thumbnail_url
                         db_video.duration_seconds = vdata.duration_seconds
                         db_video.view_count = vdata.view_count
+                        db_video.is_members_only = is_mo
                 self.db.commit()
                 stats["videos_synced"] = len(details_map)
 
@@ -231,7 +277,19 @@ class SyncService:
                             self.db.add(assoc)
                     self.db.commit()
 
-            # 4. Trigger AI enrichment for videos that don't have it yet (NEW videos only)
+            # 5. Backfill/update is_members_only status for existing videos in DB
+            all_db_videos = self.db.query(Video).all()
+            updated_mo_count = 0
+            for v in all_db_videos:
+                should_be_mo = is_mo_video(v.id, v.title, v.description or "")
+                if v.is_members_only != should_be_mo:
+                    v.is_members_only = should_be_mo
+                    updated_mo_count += 1
+            if updated_mo_count > 0:
+                self.db.commit()
+                logger.info("Backfilled is_members_only status for %d existing videos.", updated_mo_count)
+
+            # 6. Trigger AI enrichment for videos that don't have it yet (NEW videos only)
             stats["videos_enriched"] = self._enrich_new_videos()
 
         except YouTubeQuotaExceededError as qe:

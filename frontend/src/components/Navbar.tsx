@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Film, History, PlayCircle } from 'lucide-react';
+import { Film, History, PlayCircle, Crown } from 'lucide-react';
 
 interface NavbarProps {
   onSearchClick?: () => void;
@@ -65,6 +65,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onHistoryClick }) => {
             </a>
             <a href="#row_recent" className="hover:text-white transition-colors">
               新着エピソード
+            </a>
+            <a href="#row_membership" className="text-amber-400 hover:text-amber-300 transition-colors flex items-center space-x-1 font-semibold">
+              <Crown className="w-3.5 h-3.5 fill-current" />
+              <span>メンバー限定</span>
             </a>
             <a href="#playlists" className="hover:text-white transition-colors">
               大型企画シリーズ

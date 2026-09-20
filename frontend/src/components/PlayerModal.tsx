@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, ExternalLink, Sparkles, Clock, Eye } from 'lucide-react';
+import { X, ExternalLink, Sparkles, Clock, Eye, Crown } from 'lucide-react';
 import { VideoItem } from '../types';
 
 interface PlayerModalProps {
@@ -74,6 +74,24 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
+        {/* Optional Alert for Members Only */}
+        {video.is_members_only && (
+          <div className="bg-gradient-to-r from-amber-500/20 via-yellow-600/20 to-black border-b border-amber-500/30 px-3.5 py-1.5 text-[11px] sm:text-xs text-amber-300 flex items-center justify-between z-20">
+            <div className="flex items-center space-x-1.5">
+              <Crown className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span>だいにぐるーぷ公式メンバーシップ限定動画です</span>
+            </div>
+            <a
+              href="https://www.youtube.com/@dai2group/join"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-bold text-amber-200 hover:text-white ml-2 flex-shrink-0"
+            >
+              メンバー加入はこちら →
+            </a>
+          </div>
+        )}
+
         {/* YouTube Official IFrame Embed */}
         <div className="relative aspect-video w-full bg-black flex-shrink-0">
           <iframe
@@ -93,6 +111,14 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
           {/* Header & Badges */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2.5 sm:pb-3">
             <div className="max-w-full">
+              {/* Members only prominent banner */}
+              {video.is_members_only && (
+                <div className="inline-flex items-center space-x-1.5 bg-gradient-to-r from-amber-400 to-yellow-600 text-black font-black text-[10px] sm:text-xs px-2 py-0.5 rounded shadow-md mb-1.5">
+                  <Crown className="w-3.5 h-3.5 fill-current" />
+                  <span>公式メンバーシップ限定</span>
+                </div>
+              )}
+
               {video.catchphrase && (
                 <div className="flex items-center space-x-1.5 text-[11px] sm:text-sm font-bold text-netflix-red mb-0.5 sm:mb-1">
                   <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
@@ -104,15 +130,29 @@ export const PlayerModal: React.FC<PlayerModalProps> = ({
               </h2>
             </div>
 
-            <a
-              href={`https://www.youtube.com/watch?v=${video.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center space-x-1.5 text-xs font-semibold bg-white/10 hover:bg-white/20 active:scale-95 text-zinc-200 px-2.5 sm:px-3 py-1.5 rounded-md transition-colors border border-white/10 cursor-pointer"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>YouTubeで開く</span>
-            </a>
+            <div className="flex items-center space-x-2">
+              {video.is_members_only && (
+                <a
+                  href="https://www.youtube.com/@dai2group/join"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-1.5 text-xs font-bold bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black px-3 py-1.5 rounded-md transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+                >
+                  <Crown className="w-3.5 h-3.5 fill-current" />
+                  <span>メンバー登録</span>
+                </a>
+              )}
+
+              <a
+                href={`https://www.youtube.com/watch?v=${video.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-1.5 text-xs font-semibold bg-white/10 hover:bg-white/20 active:scale-95 text-zinc-200 px-2.5 sm:px-3 py-1.5 rounded-md transition-colors border border-white/10 cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>YouTubeで開く</span>
+              </a>
+            </div>
           </div>
 
           {/* Stats & Tags Bar */}

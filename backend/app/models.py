@@ -15,6 +15,7 @@ from sqlalchemy import (
     Text,
     Integer,
     BigInteger,
+    Boolean,
     DateTime,
     ForeignKey,
     JSON,
@@ -46,6 +47,13 @@ class Video(Base):
     thumbnail_url = Column(String(512), nullable=True, doc="Highest resolution thumbnail URL")
     duration_seconds = Column(Integer, nullable=True, doc="Duration in seconds")
     view_count = Column(BigInteger, nullable=True, default=0, doc="View count")
+    is_members_only = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        index=True,
+        doc="Whether video is exclusive to channel members",
+    )
 
     created_at = Column(
         DateTime(timezone=True),

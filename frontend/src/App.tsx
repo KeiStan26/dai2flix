@@ -120,8 +120,13 @@ export const App: React.FC = () => {
                   row.type === 'tag' &&
                   (idx === 0 || data.rows[idx - 1].type !== 'tag');
 
+                const isFirstMembership =
+                  row.type === 'membership' &&
+                  (idx === 0 || data.rows[idx - 1].type !== 'membership');
+
                 return (
                   <React.Fragment key={row.id}>
+                    {isFirstMembership && <div id="row_membership" className="scroll-mt-24 sm:scroll-mt-28" />}
                     {isFirstPlaylist && <div id="playlists" className="scroll-mt-24 sm:scroll-mt-28" />}
                     {isFirstTag && <div id="ai-categories" className="scroll-mt-24 sm:scroll-mt-28" />}
                     <Row row={row} onSelectVideo={handleOpenVideo} />

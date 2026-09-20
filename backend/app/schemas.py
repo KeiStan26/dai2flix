@@ -15,6 +15,7 @@ class RowType(str, Enum):
     TAG = "tag"
     FEATURED = "featured"
     RECENT = "recent"
+    MEMBERSHIP = "membership"
 
 
 class VideoItemResponse(BaseModel):
@@ -29,6 +30,7 @@ class VideoItemResponse(BaseModel):
     thumbnail_url: Optional[str] = Field(None, description="Cover thumbnail URL")
     duration_seconds: Optional[int] = Field(None, description="Duration in seconds")
     view_count: Optional[int] = Field(0, description="Total view count")
+    is_members_only: bool = Field(False, description="Whether video is exclusive to channel members")
 
     # AI Enrichment fields
     catchphrase: Optional[str] = Field(None, description="Netflix-style high-impact catchphrase")

@@ -77,6 +77,24 @@ class YouTubeVideoData:
     thumbnail_url: Optional[str]
     duration_seconds: Optional[int]
     view_count: Optional[int]
+    is_members_only: bool = False
+
+
+def derive_channel_playlist_id(channel_id: str, prefix: str) -> Optional[str]:
+    """Derive special YouTube internal playlist IDs by substituting the 'UC' channel prefix.
+    
+    Examples:
+    - UUMO + [suffix]: All membership-exclusive videos
+    - UUMF + [suffix]: Membership-exclusive long-form videos
+    - UULF + [suffix]: General public long-form videos
+    - UU   + [suffix]: All uploaded videos
+    """
+    if not channel_id:
+        return None
+    cid = channel_id.strip()
+    if cid.startswith("UC") and len(cid) >= 3:
+        return f"{prefix}{cid[2:]}"
+    return None
 
 
 class YouTubeAPIError(Exception):

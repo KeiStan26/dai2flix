@@ -13,9 +13,10 @@ export interface VideoItem {
   catchphrase?: string | null;
   synopsis?: string | null;
   mood_tags: string[];
+  is_members_only?: boolean;
 }
 
-export type RowType = 'playlist' | 'tag' | 'featured' | 'recent';
+export type RowType = 'playlist' | 'tag' | 'featured' | 'recent' | 'membership';
 
 export interface RowItem {
   id: string;

@@ -73,6 +73,19 @@ def init_db() -> None:
 
     Base.metadata.create_all(bind=engine)
 
+    # Safe auto-migration for newly added columns
+    with engine.connect() as conn:
+        try:
+            columns_info = conn.exec_driver_sql("PRAGMA table_info(videos);").fetchall()
+            existing_col_names = [col[1] for col in columns_info]
+            if "is_members_only" not in existing_col_names:
+                conn.exec_driver_sql(
+                    "ALTER TABLE videos ADD COLUMN is_members_only BOOLEAN DEFAULT 0 NOT NULL;"
+                )
+                logger.info("Auto-migrated: Added 'is_members_only' column to 'videos' table.")
+        except Exception as mig_err:
+            logger.warning(f"Auto-migration check failed or skipped: {mig_err}")
+
     # Verify journal mode
     with engine.connect() as conn:
         result = conn.exec_driver_sql("PRAGMA journal_mode;").scalar()

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Clock, Eye, Sparkles } from 'lucide-react';
+import { Play, Clock, Eye, Sparkles, Crown } from 'lucide-react';
 import { VideoItem } from '../types';
 
 interface CardProps {
@@ -36,7 +36,11 @@ export const Card: React.FC<CardProps> = ({ video, onSelect }) => {
   return (
     <div
       onClick={() => onSelect(video)}
-      className="group relative flex-shrink-0 w-[200px] sm:w-[250px] md:w-[280px] lg:w-[320px] snap-start cursor-pointer select-none rounded-md overflow-hidden bg-netflix-card border border-white/5 transition-all duration-200 active:scale-[0.97] md:hover:scale-105 md:hover:z-20 md:hover:shadow-2xl md:hover:shadow-black md:hover:border-white/20"
+      className={`group relative flex-shrink-0 w-[200px] sm:w-[250px] md:w-[280px] lg:w-[320px] snap-start cursor-pointer select-none rounded-md overflow-hidden bg-netflix-card border transition-all duration-200 active:scale-[0.97] md:hover:scale-105 md:hover:z-20 md:hover:shadow-2xl md:hover:shadow-black ${
+        video.is_members_only
+          ? 'border-amber-500/40 shadow-md shadow-amber-500/10 md:hover:border-amber-400'
+          : 'border-white/5 md:hover:border-white/20'
+      }`}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -57,6 +61,14 @@ export const Card: React.FC<CardProps> = ({ video, onSelect }) => {
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-60 md:group-hover:opacity-80 transition-opacity" />
+
+        {/* Members-only badge */}
+        {video.is_members_only && (
+          <div className="absolute top-1.5 left-1.5 z-10 flex items-center space-x-1 bg-gradient-to-r from-amber-400 to-yellow-600 text-black font-black text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded shadow-md shadow-black/50">
+            <Crown className="w-3 h-3 fill-current" />
+            <span>メンバー限定</span>
+          </div>
+        )}
 
         {/* Play Icon overlay on hover (Desktop) */}
         <div className="hidden md:flex absolute inset-0 items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">

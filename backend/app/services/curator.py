@@ -52,16 +52,19 @@ class CuratorService:
 
         if not candidates:
             # Check if any video exists at all
-            fallback = (
+            # Fallback if no public videos exist yet
+            candidates = (
                 self.db.query(Video)
                 .options(joinedload(Video.ai_enrichment))
-                .order_by(Video.published_at.desc())
-                .first()
+                .order_by(Video.view_count.desc())
+                .limit(10)
+                .all()
             )
-            return self._to_video_response(fallback) if fallback else None
+            if not candidates:
+                return None
 
-        # Prefer videos matching major series keywords
-        priority_keywords = ("逃亡生活", "心理戦", "無人島", "1週間", "大型企画", "アメリカ横断")
+        # Prioritize rich series
+        priority_keywords = ["アメリカ", "1週間逃亡生活", "刑務所", "無人島", "カジノ", "樹海"]
         for video in candidates:
             if any(k in video.title for k in priority_keywords):
                 return self._to_video_response(video)
@@ -70,13 +73,14 @@ class CuratorService:
         return self._to_video_response(candidates[0])
 
     def build_content_rows(self, limit_per_row: int = 20) -> List[RowResponse]:
-        """Generate structured rows: Official Playlists + AI Mood Tags + Recent Uploads."""
+        """Generate structured rows: Recent Public Uploads + Membership Archive + Official Playlists + AI Mood Tags."""
         rows: List[RowResponse] = []
 
-        # 1. Recent Releases Row
+        # 1. Recent Public Releases Row (Explicitly exclude members-only to avoid confusion)
         recent_videos = (
             self.db.query(Video)
             .options(joinedload(Video.ai_enrichment))
+            .filter(Video.is_members_only.is_(False))
             .order_by(Video.published_at.desc())
             .limit(limit_per_row)
             .all()
@@ -92,7 +96,27 @@ class CuratorService:
                 )
             )
 
-        # 2. Official Playlist Rows
+        # 2. Dedicated Membership Archive Row (Curated exclusive content)
+        membership_videos = (
+            self.db.query(Video)
+            .options(joinedload(Video.ai_enrichment))
+            .filter(Video.is_members_only.is_(True))
+            .order_by(Video.published_at.desc())
+            .limit(limit_per_row)
+            .all()
+        )
+        if membership_videos:
+            rows.append(
+                RowResponse(
+                    id="row_membership",
+                    title="👑 メンバーシップ限定アーカイブ",
+                    type=RowType.MEMBERSHIP,
+                    items=[self._to_video_response(v) for v in membership_videos],
+                    total_items=len(membership_videos),
+                )
+            )
+
+        # 3. Official Playlist Rows
         playlists = (
             self.db.query(Playlist)
             .order_by(Playlist.display_order.asc(), Playlist.created_at.asc())
@@ -100,6 +124,10 @@ class CuratorService:
         )
 
         for pl in playlists:
+            # Skip internal UUMO playlist here since it's already rendered as row_membership
+            if pl.id.startswith("UUMO"):
+                continue
+
             # Query associated videos in order with eager load
             playlist_entries = (
                 self.db.query(PlaylistVideo)
@@ -124,7 +152,7 @@ class CuratorService:
                         )
                     )
 
-        # 3. AI Mood Tag Rows (Cross-cutting categories based on AI tags)
+        # 4. AI Mood Tag Rows (Cross-cutting categories based on AI tags)
         tag_rows = self._build_ai_tag_rows(limit_per_row=limit_per_row)
         rows.extend(tag_rows)
 
@@ -203,6 +231,7 @@ class CuratorService:
             thumbnail_url=video.thumbnail_url,
             duration_seconds=video.duration_seconds,
             view_count=video.view_count or 0,
+            is_members_only=bool(video.is_members_only),
             catchphrase=catchphrase,
             synopsis=synopsis,
             mood_tags=mood_tags,

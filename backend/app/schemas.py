@@ -16,6 +16,7 @@ class RowType(str, Enum):
     FEATURED = "featured"
     RECENT = "recent"
     MEMBERSHIP = "membership"
+    MEMBERSHIP_TAG = "membership_tag"
 
 
 class VideoItemResponse(BaseModel):
@@ -44,6 +45,7 @@ class RowResponse(BaseModel):
     id: str = Field(..., description="Unique row identifier")
     title: str = Field(..., description="Row display title")
     type: RowType = Field(..., description="Row category type")
+    is_members_only: bool = Field(False, description="Whether this row belongs to membership section")
     items: List[VideoItemResponse] = Field(..., description="List of video items in this row")
     total_items: int = Field(..., description="Total items available in this category")
 

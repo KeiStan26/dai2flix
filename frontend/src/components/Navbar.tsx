@@ -90,8 +90,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Section Anchors (Desktop only for Public Mode) */}
-          {activeTab === 'public' && (
+          {/* Section Anchors */}
+          {activeTab === 'public' ? (
             <nav className="hidden lg:flex items-center space-x-5 text-sm font-medium text-zinc-300">
               <a href="#feed-top" className="hover:text-white transition-colors">
                 ホーム
@@ -104,6 +104,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               </a>
               <a href="#ai-categories" className="hover:text-white transition-colors">
                 AIムード別
+              </a>
+            </nav>
+          ) : (
+            <nav className="hidden lg:flex items-center space-x-5 text-sm font-medium text-amber-200/80">
+              <a href="#feed-top" className="hover:text-amber-300 transition-colors">
+                ホーム
+              </a>
+              <a href="#row_membership" className="hover:text-amber-300 transition-colors">
+                新着アーカイブ
+              </a>
+              <a href="#membership-categories" className="hover:text-amber-300 transition-colors">
+                限定ムード別
               </a>
             </nav>
           )}

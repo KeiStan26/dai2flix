@@ -30,9 +30,15 @@ export const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 分離フィルタリング
-  const publicRows = data?.rows.filter((r) => r.type !== 'membership') || [];
-  const membershipRows = data?.rows.filter((r) => r.type === 'membership') || [];
+  // 分離フィルタリング: is_members_only フラグおよび type を考慮した完全分離
+  const publicRows =
+    data?.rows.filter(
+      (r) => !r.is_members_only && r.type !== 'membership' && r.type !== 'membership_tag'
+    ) || [];
+  const membershipRows =
+    data?.rows.filter(
+      (r) => r.is_members_only || r.type === 'membership' || r.type === 'membership_tag'
+    ) || [];
   const membershipBillboard = membershipRows[0]?.items[0] || data?.billboard;
 
   return (
@@ -160,42 +166,61 @@ export const App: React.FC = () => {
                   />
                 )}
 
-                <div className="-mt-12 sm:-mt-20 md:-mt-28 relative z-20 space-y-4 sm:space-y-6 px-3 sm:px-6 md:px-12">
+                <div className="-mt-12 sm:-mt-20 md:-mt-28 relative z-20 space-y-4 sm:space-y-6">
                   {/* 公式メンバーシップ案内バナー */}
-                  <div className="bg-gradient-to-r from-amber-950/80 via-black/80 to-amber-950/80 border border-amber-500/30 rounded-xl p-4 sm:p-6 backdrop-blur-md shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center space-x-3 sm:space-x-4 text-left">
-                      <div className="p-3 bg-amber-500/20 rounded-full text-amber-400 shrink-0">
-                        <Crown className="w-6 h-6 fill-current" />
+                  <div className="px-3 sm:px-6 md:px-12">
+                    <div className="bg-gradient-to-r from-amber-950/80 via-black/80 to-amber-950/80 border border-amber-500/30 rounded-xl p-4 sm:p-6 backdrop-blur-md shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center space-x-3 sm:space-x-4 text-left">
+                        <div className="p-3 bg-amber-500/20 rounded-full text-amber-400 shrink-0">
+                          <Crown className="w-6 h-6 fill-current" />
+                        </div>
+                        <div>
+                          <h3 className="text-base sm:text-lg font-black text-amber-300">
+                            だいにぐるーぷ公式 メンバーシップ限定コンテンツ
+                          </h3>
+                          <p className="text-xs sm:text-sm text-zinc-300 mt-0.5">
+                            未公開シーン、メイキング、生配信アーカイブなど、メンバー限定動画をまとめています。
+                            <br className="hidden sm:inline" />
+                            ※本動画の再生には公式YouTubeメンバーシップ（有料）への加入が必要です。
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-base sm:text-lg font-black text-amber-300">
-                          だいにぐるーぷ公式 メンバーシップ限定コンテンツ
-                        </h3>
-                        <p className="text-xs sm:text-sm text-zinc-300 mt-0.5">
-                          未公開シーン、メイキング、生配信アーカイブなど、メンバー限定動画をまとめています。
-                          <br className="hidden sm:inline" />
-                          ※本動画の再生には公式YouTubeメンバーシップ（有料）への加入が必要です。
-                        </p>
-                      </div>
+                      <a
+                        href="https://www.youtube.com/@dai2group/join"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 w-full md:w-auto text-center px-5 py-2.5 rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                      >
+                        <Crown className="w-4 h-4 fill-current" />
+                        <span>公式メンバーシップに加入する</span>
+                      </a>
                     </div>
-                    <a
-                      href="https://www.youtube.com/@dai2group/join"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 w-full md:w-auto text-center px-5 py-2.5 rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
-                    >
-                      <Crown className="w-4 h-4 fill-current" />
-                      <span>公式メンバーシップに加入する</span>
-                    </a>
                   </div>
 
-                  {/* メンバー限定Rows */}
+                  {/* メンバー限定Rows（新着アーカイブ + 限定AIムード別Rows） */}
                   {membershipRows.length > 0 ? (
-                    membershipRows.map((row) => (
-                      <Row key={row.id} row={row} onSelectVideo={handleOpenVideo} />
-                    ))
+                    membershipRows.map((row, idx) => {
+                      const isFirstMembershipTag =
+                        row.type === 'membership_tag' &&
+                        (idx === 0 || membershipRows[idx - 1].type !== 'membership_tag');
+
+                      return (
+                        <React.Fragment key={row.id}>
+                          {row.type === 'membership' && (
+                            <div id="row_membership" className="scroll-mt-24 sm:scroll-mt-28" />
+                          )}
+                          {isFirstMembershipTag && (
+                            <div
+                              id="membership-categories"
+                              className="scroll-mt-24 sm:scroll-mt-28"
+                            />
+                          )}
+                          <Row row={row} onSelectVideo={handleOpenVideo} />
+                        </React.Fragment>
+                      );
+                    })
                   ) : (
-                    <div className="py-16 text-center text-zinc-400 space-y-3 bg-white/5 rounded-xl border border-white/5">
+                    <div className="mx-3 sm:mx-6 md:mx-12 py-16 text-center text-zinc-400 space-y-3 bg-white/5 rounded-xl border border-white/5">
                       <Crown className="w-10 h-10 text-amber-400/60 mx-auto" />
                       <p className="text-sm font-bold">メンバー限定動画を読み込み中、または同期待ちです</p>
                       <p className="text-xs text-zinc-500">

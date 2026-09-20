@@ -16,12 +16,13 @@ export interface VideoItem {
   is_members_only?: boolean;
 }
 
-export type RowType = 'playlist' | 'tag' | 'featured' | 'recent' | 'membership';
+export type RowType = 'playlist' | 'tag' | 'featured' | 'recent' | 'membership' | 'membership_tag';
 
 export interface RowItem {
   id: string;
   title: string;
   type: RowType;
+  is_members_only?: boolean;
   items: VideoItem[];
   total_items: number;
 }

@@ -6,12 +6,13 @@ import { PlayerModal } from './components/PlayerModal';
 import { useFeed } from './hooks/useFeed';
 import { useWatchHistory } from './hooks/useWatchHistory';
 import { VideoItem } from './types';
-import { AlertCircle, Film, RefreshCw } from 'lucide-react';
+import { AlertCircle, Film, RefreshCw, Crown } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { data, loading, error, refetch } = useFeed();
   const { historyRow, addToHistory } = useWatchHistory();
 
+  const [activeTab, setActiveTab] = useState<'public' | 'membership'>('public');
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState<boolean>(false);
 
@@ -24,10 +25,22 @@ export const App: React.FC = () => {
     setIsPlayerOpen(false);
   };
 
+  const handleTabChange = (tab: 'public' | 'membership') => {
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 分離フィルタリング
+  const publicRows = data?.rows.filter((r) => r.type !== 'membership') || [];
+  const membershipRows = data?.rows.filter((r) => r.type === 'membership') || [];
+  const membershipBillboard = membershipRows[0]?.items[0] || data?.billboard;
+
   return (
     <div className="min-h-screen bg-[#141414] text-white flex flex-col font-sans selection:bg-netflix-red selection:text-white">
       {/* Top Floating Navbar */}
       <Navbar
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
         onHistoryClick={() => {
           const el = document.getElementById('row_watch_history');
           if (el) {
@@ -37,7 +50,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pb-16" id="feed-top">
         {/* Loading Skeleton State */}
         {loading && !data && (
           <div className="w-full space-y-6 sm:space-y-8 animate-fadeIn">
@@ -94,46 +107,105 @@ export const App: React.FC = () => {
         {/* Loaded Content */}
         {data && (
           <>
-            {/* 1. Hero Billboard Banner */}
-            <Billboard
-              video={data.billboard}
-              onPlay={handleOpenVideo}
-              onDetail={handleOpenVideo}
-            />
+            {activeTab === 'public' ? (
+              /* ================== 一般公開タブ ================== */
+              <div className="animate-fadeIn">
+                {/* 1. Hero Billboard Banner */}
+                {data.billboard && (
+                  <Billboard
+                    video={data.billboard}
+                    onPlay={handleOpenVideo}
+                    onDetail={handleOpenVideo}
+                  />
+                )}
 
-            {/* Negative margin container for Netflix row overlap on billboard bottom */}
-            <div className="-mt-12 sm:-mt-20 md:-mt-28 relative z-20 space-y-4 sm:space-y-6">
-              {/* 2. Dynamically Injected Watch History Row (Highest Priority) */}
-              {historyRow && (
-                <div id="row_watch_history" className="animate-fadeIn">
-                  <Row row={historyRow} onSelectVideo={handleOpenVideo} />
+                {/* Negative margin container for Netflix row overlap on billboard bottom */}
+                <div className="-mt-12 sm:-mt-20 md:-mt-28 relative z-20 space-y-4 sm:space-y-6">
+                  {/* 2. Dynamically Injected Watch History Row (Highest Priority) */}
+                  {historyRow && (
+                    <div id="row_watch_history" className="animate-fadeIn">
+                      <Row row={historyRow} onSelectVideo={handleOpenVideo} />
+                    </div>
+                  )}
+
+                  {/* 3. Server Aggregated Public Rows (Playlists, Mood Tags, Recents) */}
+                  {publicRows.map((row, idx) => {
+                    const isFirstPlaylist =
+                      row.type === 'playlist' &&
+                      (idx === 0 || publicRows[idx - 1].type !== 'playlist');
+
+                    const isFirstTag =
+                      row.type === 'tag' &&
+                      (idx === 0 || publicRows[idx - 1].type !== 'tag');
+
+                    return (
+                      <React.Fragment key={row.id}>
+                        {isFirstPlaylist && <div id="playlists" className="scroll-mt-24 sm:scroll-mt-28" />}
+                        {isFirstTag && <div id="ai-categories" className="scroll-mt-24 sm:scroll-mt-28" />}
+                        <Row row={row} onSelectVideo={handleOpenVideo} />
+                      </React.Fragment>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+            ) : (
+              /* ================== メンバー限定タブ ================== */
+              <div className="animate-fadeIn">
+                {/* メンバー限定用 Billboard */}
+                {membershipBillboard && (
+                  <Billboard
+                    video={membershipBillboard}
+                    onPlay={handleOpenVideo}
+                    onDetail={handleOpenVideo}
+                  />
+                )}
 
-              {/* 3. Server Aggregated Rows (Playlists, Mood Tags, Recents) */}
-              {data.rows.map((row, idx) => {
-                const isFirstPlaylist =
-                  row.type === 'playlist' &&
-                  (idx === 0 || data.rows[idx - 1].type !== 'playlist');
+                <div className="-mt-12 sm:-mt-20 md:-mt-28 relative z-20 space-y-4 sm:space-y-6 px-3 sm:px-6 md:px-12">
+                  {/* 公式メンバーシップ案内バナー */}
+                  <div className="bg-gradient-to-r from-amber-950/80 via-black/80 to-amber-950/80 border border-amber-500/30 rounded-xl p-4 sm:p-6 backdrop-blur-md shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4 text-left">
+                      <div className="p-3 bg-amber-500/20 rounded-full text-amber-400 shrink-0">
+                        <Crown className="w-6 h-6 fill-current" />
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-black text-amber-300">
+                          だいにぐるーぷ公式 メンバーシップ限定コンテンツ
+                        </h3>
+                        <p className="text-xs sm:text-sm text-zinc-300 mt-0.5">
+                          未公開シーン、メイキング、生配信アーカイブなど、メンバー限定動画をまとめています。
+                          <br className="hidden sm:inline" />
+                          ※本動画の再生には公式YouTubeメンバーシップ（有料）への加入が必要です。
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href="https://www.youtube.com/@dai2group/join"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 w-full md:w-auto text-center px-5 py-2.5 rounded-lg bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs sm:text-sm shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center space-x-1.5"
+                    >
+                      <Crown className="w-4 h-4 fill-current" />
+                      <span>公式メンバーシップに加入する</span>
+                    </a>
+                  </div>
 
-                const isFirstTag =
-                  row.type === 'tag' &&
-                  (idx === 0 || data.rows[idx - 1].type !== 'tag');
-
-                const isFirstMembership =
-                  row.type === 'membership' &&
-                  (idx === 0 || data.rows[idx - 1].type !== 'membership');
-
-                return (
-                  <React.Fragment key={row.id}>
-                    {isFirstMembership && <div id="row_membership" className="scroll-mt-24 sm:scroll-mt-28" />}
-                    {isFirstPlaylist && <div id="playlists" className="scroll-mt-24 sm:scroll-mt-28" />}
-                    {isFirstTag && <div id="ai-categories" className="scroll-mt-24 sm:scroll-mt-28" />}
-                    <Row row={row} onSelectVideo={handleOpenVideo} />
-                  </React.Fragment>
-                );
-              })}
-            </div>
+                  {/* メンバー限定Rows */}
+                  {membershipRows.length > 0 ? (
+                    membershipRows.map((row) => (
+                      <Row key={row.id} row={row} onSelectVideo={handleOpenVideo} />
+                    ))
+                  ) : (
+                    <div className="py-16 text-center text-zinc-400 space-y-3 bg-white/5 rounded-xl border border-white/5">
+                      <Crown className="w-10 h-10 text-amber-400/60 mx-auto" />
+                      <p className="text-sm font-bold">メンバー限定動画を読み込み中、または同期待ちです</p>
+                      <p className="text-xs text-zinc-500">
+                        YouTubeデータ同期バッチを実行すると、最新のメンバー限定動画がここに集約されます。
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
       </main>

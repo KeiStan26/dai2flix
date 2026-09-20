@@ -4,9 +4,15 @@ import { Film, History, PlayCircle, Crown } from 'lucide-react';
 interface NavbarProps {
   onSearchClick?: () => void;
   onHistoryClick?: () => void;
+  activeTab: 'public' | 'membership';
+  onTabChange: (tab: 'public' | 'membership') => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onHistoryClick }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  onHistoryClick,
+  activeTab,
+  onTabChange,
+}) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [useImageLogo, setUseImageLogo] = useState(true);
 
@@ -33,8 +39,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onHistoryClick }) => {
       style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0.75rem))' }}
     >
       <div className="max-w-[1700px] mx-auto px-3 sm:px-6 md:px-12 flex items-center justify-between">
-        {/* Brand Logo & Navigation */}
-        <div className="flex items-center space-x-4 md:space-x-8">
+        {/* Brand Logo & View Mode Tabs */}
+        <div className="flex items-center space-x-3 sm:space-x-6 md:space-x-8">
           <a
             href="/"
             className="flex items-center space-x-1.5 sm:space-x-2 group focus:outline-none select-none"
@@ -59,24 +65,48 @@ export const Navbar: React.FC<NavbarProps> = ({ onHistoryClick }) => {
             )}
           </a>
 
-          <nav className="hidden md:flex items-center space-x-6 text-sm font-medium text-zinc-300">
-            <a href="#feed-top" className="hover:text-white transition-colors">
-              ホーム
-            </a>
-            <a href="#row_recent" className="hover:text-white transition-colors">
-              新着エピソード
-            </a>
-            <a href="#row_membership" className="text-amber-400 hover:text-amber-300 transition-colors flex items-center space-x-1 font-semibold">
-              <Crown className="w-3.5 h-3.5 fill-current" />
+          {/* Mode Tabs (Public vs Membership) */}
+          <div className="flex items-center bg-black/70 p-0.5 rounded-full border border-white/10 text-[11px] sm:text-xs">
+            <button
+              onClick={() => onTabChange('public')}
+              className={`px-2.5 sm:px-3.5 py-1 rounded-full font-bold transition-all cursor-pointer ${
+                activeTab === 'public'
+                  ? 'bg-white text-black shadow-md'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              一般公開
+            </button>
+            <button
+              onClick={() => onTabChange('membership')}
+              className={`px-2.5 sm:px-3.5 py-1 rounded-full font-bold transition-all flex items-center space-x-1 cursor-pointer ${
+                activeTab === 'membership'
+                  ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md shadow-amber-500/20'
+                  : 'text-amber-400/80 hover:text-amber-300'
+              }`}
+            >
+              <Crown className="w-3 h-3 fill-current" />
               <span>メンバー限定</span>
-            </a>
-            <a href="#playlists" className="hover:text-white transition-colors">
-              大型企画シリーズ
-            </a>
-            <a href="#ai-categories" className="hover:text-white transition-colors">
-              AIムード別
-            </a>
-          </nav>
+            </button>
+          </div>
+
+          {/* Section Anchors (Desktop only for Public Mode) */}
+          {activeTab === 'public' && (
+            <nav className="hidden lg:flex items-center space-x-5 text-sm font-medium text-zinc-300">
+              <a href="#feed-top" className="hover:text-white transition-colors">
+                ホーム
+              </a>
+              <a href="#row_recent" className="hover:text-white transition-colors">
+                新着エピソード
+              </a>
+              <a href="#playlists" className="hover:text-white transition-colors">
+                大型企画シリーズ
+              </a>
+              <a href="#ai-categories" className="hover:text-white transition-colors">
+                AIムード別
+              </a>
+            </nav>
+          )}
         </div>
 
         {/* Action Controls */}
